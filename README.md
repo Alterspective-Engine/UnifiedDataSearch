@@ -2,6 +2,8 @@
 
 A complete frontend-only solution for searching across ShareDo ODS and external Practice Management Systems (PMS) with NO backend changes required.
 
+> ⚠️ **CRITICAL**: This module MUST be installed under `_IDE/Alt/UnifiedDataSearch/` to work with the ShareDo VSCode extension for deployment. See [Installation](#installation) for details.
+
 ## 🎯 Overview
 
 UnifiedDataSearch provides a seamless search experience across multiple data sources in ShareDo environments, allowing users to search both internal ODS (Organisational Data Store) and external PMS systems simultaneously. Results are intelligently merged, duplicates are identified, and data conflicts are highlighted.
@@ -19,12 +21,29 @@ UnifiedDataSearch provides a seamless search experience across multiple data sou
 
 ## 🚀 Quick Start
 
+### ⚠️ IMPORTANT: Directory Structure Requirement
+
+**This module MUST be placed under the `_IDE/Alt/` directory structure to work with the ShareDo VSCode extension for deployment.**
+
 ### Installation
 
-1. Copy the `UnifiedDataSearch` folder to your ShareDo IDE path:
+1. Clone or copy the `UnifiedDataSearch` folder to your ShareDo project at this EXACT path:
    ```
-   _IDE/Alt/UnifiedDataSearch/
+   YourShareDoProject/
+   └── _IDE/
+       └── Alt/
+           └── UnifiedDataSearch/   ← THIS MODULE GOES HERE
+               ├── Blades/
+               ├── Widgets/
+               ├── Services/
+               └── ...
    ```
+
+   **Why this specific path?**
+   - The ShareDo VSCode extension scans the `_IDE/` directory for deployable components
+   - The `Alt/` subfolder organizes Alterspective customizations
+   - File references in the code use `/_ideFiles/Alt/UnifiedDataSearch/...` paths
+   - The VSCode extension will NOT detect or deploy the module if placed elsewhere
 
 2. Add the widget to your aspect configuration:
    ```json
@@ -109,6 +128,52 @@ The module includes comprehensive test pages:
 - `test-widget.html` - Test the entity picker widget
 - `test-mock-data.html` - Test mock PMS service
 - `test-ods-api.html` - Test ODS API integration
+
+## 🚢 Deployment with ShareDo VSCode Extension
+
+### Prerequisites
+1. **ShareDo VSCode Extension** installed and configured
+2. Module placed at correct path: `_IDE/Alt/UnifiedDataSearch/`
+3. VSCode workspace opened at project root (containing `_IDE/` folder)
+
+### Deployment Steps
+
+1. **Open VSCode** at your ShareDo project root
+   ```
+   code YourShareDoProject/
+   ```
+
+2. **Verify module location**:
+   - In VSCode Explorer, navigate to `_IDE/Alt/UnifiedDataSearch/`
+   - Confirm all files are present
+
+3. **Use ShareDo Extension**:
+   - Open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
+   - Run: `ShareDo: Deploy IDE Components`
+   - Select `UnifiedDataSearch` components for deployment
+
+4. **Verify deployment**:
+   - Check that files are accessible at `/_ideFiles/Alt/UnifiedDataSearch/...`
+   - Test blade opening in ShareDo UI
+
+### Path Mapping
+
+| Local Path | Deployed URL Path |
+|------------|------------------|
+| `_IDE/Alt/UnifiedDataSearch/Blades/...` | `/_ideFiles/Alt/UnifiedDataSearch/Blades/...` |
+| `_IDE/Alt/UnifiedDataSearch/Widgets/...` | `/_ideFiles/Alt/UnifiedDataSearch/Widgets/...` |
+| `_IDE/Alt/UnifiedDataSearch/Services/...` | `/_ideFiles/Alt/UnifiedDataSearch/Services/...` |
+
+### ⚠️ Common Deployment Issues
+
+**Issue**: "Module not found by VSCode extension"
+- **Solution**: Ensure module is under `_IDE/Alt/` not in root or other locations
+
+**Issue**: "404 errors when loading blade"
+- **Solution**: Check that paths in panel.json use `/_ideFiles/Alt/UnifiedDataSearch/...`
+
+**Issue**: "Components not appearing in ShareDo"
+- **Solution**: Verify VSCode extension deployment completed successfully
 
 ## 🔌 API Integration
 
