@@ -65,10 +65,10 @@ UnifiedDataSearch provides a seamless search experience across multiple data sou
 
 ## 📖 Documentation
 
+- **[Complete Documentation](./DOCUMENTATION.md)** - Full technical reference
 - **[Quick Implementation Guide](./QUICK_IMPLEMENTATION_GUIDE.md)** - Get started in 5 minutes
-- **[Full Documentation (CLAUDE.md)](./CLAUDE.md)** - Complete implementation details
+- **[Implementation Details (CLAUDE.md)](./CLAUDE.md)** - Detailed implementation notes
 - **[Component Research](./SHAREDO_COMPONENT_INTEGRATION_RESEARCH.md)** - ShareDo component analysis
-- **[Technical Specification](./SPECIFICATION.md)** - Original requirements
 
 ## 🏗️ Architecture
 
