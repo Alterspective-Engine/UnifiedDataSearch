@@ -1,0 +1,46 @@
+{
+    "comment": "FormIO component configuration for UnifiedOdsEntityPicker",
+    "type": "htmlelement",
+    "label": "Client Selection",
+    "key": "clientSelection",
+    "content": "<div data-bind='component: { name: \"Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker\", params: $data.componentConfig }'></div>",
+    "refreshOnChange": false,
+    "customClass": "unified-entity-picker-formio",
+    "properties": {
+        "componentConfig": {
+            "label": "Select Client",
+            "placeholder": "Search for client in ODS and PMS...",
+            "required": true,
+            "allowMultiple": false,
+            "mode": "auto",
+            "fieldName": "selectedClientId",
+            "returnField": "odsId",
+            "entityTypes": ["person", "organisation"],
+            "searchMode": "unified",
+            "useMockPms": true,
+            "showEmail": true,
+            "showPhone": false,
+            "showSource": true
+        }
+    },
+    "validate": {
+        "required": true,
+        "custom": "valid = instance.validationErrorCount && instance.validationErrorCount() === 0;"
+    },
+    "logic": [
+        {
+            "name": "Store Selected Value",
+            "trigger": {
+                "type": "event",
+                "event": "change"
+            },
+            "actions": [
+                {
+                    "name": "Store ODS ID",
+                    "type": "value",
+                    "value": "value = instance.selectedEntity() ? instance.selectedEntity().odsId : null;"
+                }
+            ]
+        }
+    ]
+}

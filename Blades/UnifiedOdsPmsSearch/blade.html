@@ -1,0 +1,261 @@
+<div class="unified-search-blade">
+    <!-- Blade Header with Title and Close Button -->
+    <div class="blade-header">
+        <div class="blade-title-section">
+            <h2 class="blade-title">
+                <i class="fa fa-search"></i>
+                <span data-bind="text: blade.title"></span>
+            </h2>
+            <p class="blade-subtitle" data-bind="text: blade.subtitle"></p>
+        </div>
+        <div class="blade-actions">
+            <button class="btn-header-action" title="Clear Search" data-bind="click: function() { searchQuery(''); searchResults([]); hasSearched(false); selectedEntity(null); }">
+                <i class="fa fa-eraser"></i>
+            </button>
+            <button class="btn-header-action" title="Refresh" data-bind="click: function() { if (searchQuery()) executeSearch(); }">
+                <i class="fa fa-refresh"></i>
+            </button>
+            <button class="btn-header-close" title="Close" data-bind="click: function() { close(false); }">
+                <i class="fa fa-times"></i>
+                Close
+            </button>
+        </div>
+    </div>
+    
+    <div class="blade-content">
+        <!-- Compact Search Progress Indicator -->
+        <!-- ko if: isSearching() || (hasSearched() && (odsResultCount() > 0 || pmsResultCount() > 0)) -->
+    <div class="search-progress-compact" data-bind="css: { 'searching': isSearching() }">
+        <div class="progress-systems">
+            <!-- ShareDo ODS Status -->
+            <div class="system-status-compact" data-bind="css: { 'completed': odsSearchComplete, 'error': odsSearchError, 'searching': isSearching() && !odsSearchComplete() && !odsSearchError() }">
+                <i class="fa fa-database"></i>
+                <span class="system-label">ShareDo</span>
+                <!-- ko if: isSearching() && !odsSearchComplete() && !odsSearchError() -->
+                <i class="fa fa-spinner fa-spin"></i>
+                <!-- /ko -->
+                <!-- ko if: odsSearchComplete() -->
+                <i class="fa fa-check"></i>
+                <span class="count" data-bind="text: '(' + odsResultCount() + ')'"></span>
+                <!-- /ko -->
+                <!-- ko if: odsSearchError() -->
+                <i class="fa fa-times"></i>
+                <!-- /ko -->
+            </div>
+            
+            <span class="separator">|</span>
+            
+            <!-- PMS Status -->
+            <div class="system-status-compact" data-bind="css: { 'completed': pmsSearchComplete, 'error': pmsSearchError, 'searching': isSearching() && !pmsSearchComplete() && !pmsSearchError() }">
+                <i class="fa fa-briefcase"></i>
+                <span class="system-label">PMS</span>
+                <!-- ko if: isSearching() && !pmsSearchComplete() && !pmsSearchError() -->
+                <i class="fa fa-spinner fa-spin"></i>
+                <!-- /ko -->
+                <!-- ko if: pmsSearchComplete() -->
+                <i class="fa fa-check"></i>
+                <span class="count" data-bind="text: '(' + pmsResultCount() + ')'"></span>
+                <!-- /ko -->
+                <!-- ko if: pmsSearchError() -->
+                <i class="fa fa-times"></i>
+                <!-- /ko -->
+            </div>
+        </div>
+        
+        <!-- Total Results Summary -->
+        <!-- ko if: !isSearching() && hasSearched() -->
+        <div class="total-results">
+            Total: <strong data-bind="text: filteredResults().length"></strong> results
+        </div>
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+    
+    <!-- Search Input -->
+    <div class="search-header">
+        <div class="search-input-group">
+            <div class="input-group">
+                <input type="text" 
+                       class="form-control search-input" 
+                       placeholder="Search for person or organisation..." 
+                       data-bind="value: searchQuery, valueUpdate: 'input', hasFocus: true" />
+                <span class="input-group-addon">
+                    <i class="fa fa-search"></i>
+                </span>
+            </div>
+        </div>
+        
+        <!-- Entity Type Filter -->
+        <div class="entity-type-filter">
+            <div class="btn-group" data-toggle="buttons">
+                <label class="btn btn-default" data-bind="css: { active: searchEntityType() === 'all' }">
+                    <input type="radio" value="all" data-bind="checked: searchEntityType" />
+                    <i class="fa fa-users"></i> All
+                </label>
+                <label class="btn btn-default" data-bind="css: { active: searchEntityType() === 'person' }">
+                    <input type="radio" value="person" data-bind="checked: searchEntityType" />
+                    <i class="fa fa-user"></i> People
+                </label>
+                <label class="btn btn-default" data-bind="css: { active: searchEntityType() === 'organisation' }">
+                    <input type="radio" value="organisation" data-bind="checked: searchEntityType" />
+                    <i class="fa fa-building"></i> Organisations
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Messages -->
+    <!-- ko if: searchErrors().length > 0 -->
+    <div class="alert alert-warning alert-dismissible" role="alert">
+        <button type="button" class="close" data-bind="click: function() { searchErrors.removeAll(); }">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        <strong>Search Issues:</strong>
+        <!-- ko foreach: searchErrors -->
+        <div data-bind="text: $data"></div>
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+    
+    <!-- Search Results -->
+    <div class="search-results" data-bind="visible: hasSearched">
+        <!-- ko if: filteredResults().length === 0 && !isSearching() -->
+        <div class="no-results">
+            <i class="fa fa-search fa-3x"></i>
+            <h4>No results found</h4>
+            <p>Try adjusting your search terms or filters</p>
+        </div>
+        <!-- /ko -->
+        
+        <!-- Results List -->
+        <div class="results-list">
+            <!-- ko foreach: filteredResults -->
+            <div class="result-card" data-bind="click: function() { $parent.selectEntity($data); }, css: { 'has-conflicts': hasConflicts, 'selected': $parent.selectedEntity() === $data }">
+                <div class="result-header">
+                    <div class="result-icon-name">
+                        <i class="result-icon" data-bind="css: icon"></i>
+                        <span class="result-name" data-bind="text: displayName"></span>
+                    </div>
+                    
+                    <!-- Source Badge -->
+                    <span class="source-badge" data-bind="css: 'source-' + source">
+                        <!-- ko if: source === 'sharedo' -->
+                        <i class="fa fa-database"></i> ShareDo
+                        <!-- /ko -->
+                        <!-- ko if: source === 'pms' -->
+                        <i class="fa fa-briefcase"></i> PMS
+                        <!-- /ko -->
+                        <!-- ko if: source === 'matched' -->
+                        <i class="fa fa-link"></i> Matched
+                            <!-- ko if: matchType === 'reference' -->
+                            <span class="ref-indicator" title="Matched by Reference field">(Ref)</span>
+                            <!-- /ko -->
+                        <!-- /ko -->
+                    </span>
+                </div>
+                
+                <div class="result-details">
+                    <!-- ko if: primaryEmail -->
+                    <div class="detail-item">
+                        <i class="fa fa-envelope"></i>
+                        <span data-bind="text: primaryEmail"></span>
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko if: primaryPhone -->
+                    <div class="detail-item">
+                        <i class="fa fa-phone"></i>
+                        <span data-bind="text: primaryPhone"></span>
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko if: formattedAddress -->
+                    <div class="detail-item">
+                        <i class="fa fa-map-marker"></i>
+                        <span data-bind="text: formattedAddress"></span>
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko if: data.abn -->
+                    <div class="detail-item">
+                        <i class="fa fa-certificate"></i>
+                        ABN: <span data-bind="text: data.abn"></span>
+                    </div>
+                    <!-- /ko -->
+                </div>
+                
+                <!-- ko if: hasConflicts -->
+                <div class="conflict-indicator">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <span data-bind="text: conflicts.length"></span> data difference<span data-bind="visible: conflicts.length > 1">s</span> detected
+                    
+                    <!-- Conflict Details (shown on hover) -->
+                    <div class="conflict-tooltip">
+                        <strong>Data Differences:</strong>
+                        <!-- ko foreach: conflicts.slice(0, 3) -->
+                        <div class="conflict-item">
+                            <span data-bind="text: label"></span>:
+                            <div class="conflict-values">
+                                <span class="ods-value">ShareDo: <span data-bind="text: odsValue"></span></span>
+                                <span class="pms-value">PMS: <span data-bind="text: pmsValue"></span></span>
+                            </div>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: conflicts.length > 3 -->
+                        <div class="conflict-more">
+                            ... and <span data-bind="text: conflicts.length - 3"></span> more
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <!-- /ko -->
+                
+                <!-- Action Buttons (visible on hover or selection) -->
+                <div class="result-actions">
+                    <button class="btn btn-sm btn-primary" data-bind="click: function() { $parent.selectEntity($data); }, clickBubble: false">
+                        <i class="fa fa-check"></i> Select
+                    </button>
+                    <!-- ko if: hasConflicts -->
+                    <button class="btn btn-sm btn-warning" data-bind="click: function() { $parent.handleConflictedEntity($data); }, clickBubble: false">
+                        <i class="fa fa-exclamation-triangle"></i> Review
+                    </button>
+                    <!-- /ko -->
+                </div>
+            </div>
+            <!-- /ko -->
+        </div>
+        
+        <!-- Pagination (if needed) -->
+        <!-- ko if: filteredResults().length >= options.rowsPerPage -->
+        <div class="pagination-controls">
+            <button class="btn btn-default" data-bind="click: function() { page(page() - 1); executeSearch(); }, enable: page() > 0">
+                <i class="fa fa-chevron-left"></i> Previous
+            </button>
+            <span class="page-info">
+                Page <span data-bind="text: page() + 1"></span>
+            </span>
+            <button class="btn btn-default" data-bind="click: function() { page(page() + 1); executeSearch(); }">
+                Next <i class="fa fa-chevron-right"></i>
+            </button>
+        </div>
+        <!-- /ko -->
+    </div>
+    
+    <!-- Initial State (before search) -->
+    <!-- ko if: !hasSearched() && !isSearching() -->
+    <div class="initial-state">
+        <div class="welcome-message">
+            <i class="fa fa-search fa-4x"></i>
+            <h3>Unified Search</h3>
+            <p>Search across both ShareDo ODS and your Practice Management System</p>
+            <div class="search-tips">
+                <h5>Search Tips:</h5>
+                <ul>
+                    <li>Enter at least 2 characters to start searching</li>
+                    <li>Use filters to search for specific entity types</li>
+                    <li>Results from both systems will be automatically merged</li>
+                    <li>Conflicts between systems will be highlighted</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- /ko -->
+    </div><!-- End blade-content -->
+</div>

@@ -1,0 +1,31 @@
+{
+    "comment": "Aspect widget configuration for multiple participant selection",
+    "widgetType": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker",
+    "configuration": {
+        "_host": {
+            "model": "@parent",
+            "blade": "@blade",
+            "enabled": "@enabled"
+        },
+        "label": "Case Participants",
+        "placeholder": "Add participants to this case...",
+        "required": false,
+        "allowMultiple": true,
+        "allowClear": true,
+        "mode": "auto",
+        "fieldName": "participants",
+        "returnField": "entity",
+        "entityTypes": ["person", "organisation"],
+        "searchMode": "unified",
+        "useMockPms": true,
+        "useMockOds": false,
+        "sharedoId": "@workItemId",
+        "sharedoTypeSystemName": "@workItemType",
+        "forRoleSystemName": "participant",
+        "showIcon": true,
+        "showEmail": true,
+        "showPhone": true,
+        "showSource": true,
+        "showAddress": false
+    }
+}

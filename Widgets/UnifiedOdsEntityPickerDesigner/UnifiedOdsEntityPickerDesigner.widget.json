@@ -1,0 +1,25 @@
+{
+    "id": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPickerDesigner",
+    "priority": 6000,
+    "designer": {
+        "allowInPortalDesigner": false,
+        "allowInSharedoPortalDesigner": false,
+        "allowAspectAdapter": false,
+        "title": "UnifiedOdsEntityPicker Designer",
+        "icon": "fa-cog",
+        "description": "Configuration designer for UnifiedOdsEntityPicker widget",
+        "categories": ["Designer"],
+        "isConfigurable": false
+    },
+    "scripts": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Widgets/UnifiedOdsEntityPickerDesigner/UnifiedOdsEntityPickerDesigner.js"
+    ],
+    "styles": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Widgets/UnifiedOdsEntityPickerDesigner/UnifiedOdsEntityPickerDesigner.css"
+    ],
+    "templates": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Widgets/UnifiedOdsEntityPickerDesigner/UnifiedOdsEntityPickerDesigner.html"
+    ],
+    "menuTemplates": [],
+    "components": []
+}

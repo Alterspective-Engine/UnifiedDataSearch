@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug UnifiedDataSearch</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.1/knockout-latest.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        button { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        pre { background: #333; color: #0f0; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .error { color: red; }
+        .success { color: green; }
+        input { padding: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Debug UnifiedDataSearch Blade</h1>
+    
+    <div class="section">
+        <h2>Configuration</h2>
+        <label>
+            <input type="checkbox" id="useMockOds" /> Use Mock ODS Data
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" id="useMockPms" checked /> Use Mock PMS Data
+        </label>
+    </div>
+    
+    <div class="section">
+        <h2>Test Direct API</h2>
+        <input type="text" id="directSearchQuery" value="igor" placeholder="Search query">
+        <button onclick="testDirectApi()">Test ODS API Directly</button>
+        <button onclick="testMockPms()">Test Mock PMS</button>
+    </div>
+    
+    <div class="section">
+        <h2>Test Blade Search</h2>
+        <input type="text" id="bladeSearchQuery" value="igor" placeholder="Search query">
+        <button onclick="openBlade()">Open Blade</button>
+        <button onclick="simulateBladeSearch()">Simulate Blade Search</button>
+    </div>
+    
+    <div class="section">
+        <h2>Console Output</h2>
+        <pre id="console"></pre>
+    </div>
+    
+    <!-- Load the actual blade components -->
+    <script src="Helpers/namespace.js"></script>
+    <script src="Services/MockPmsService.js"></script>
+    <script src="Services/ResultMergerService.js"></script>
+    <script src="Services/ConflictDetectorService.js"></script>
+    
+    <script>
+        var consoleDiv = document.getElementById('console');
+        function log(msg, data) {
+            var timestamp = new Date().toISOString().substr(11, 12);
+            var logMsg = timestamp + ' - ' + msg;
+            if (data !== undefined) {
+                logMsg += '\n' + JSON.stringify(data, null, 2);
+            }
+            consoleDiv.textContent += logMsg + '\n\n';
+            console.log(msg, data);
+        }
+        
+        // Test direct ODS API
+        function testDirectApi() {
+            var query = document.getElementById('directSearchQuery').value;
+            log('Testing direct ODS API with query: ' + query);
+            
+            var payload = {
+                startPage: 1,
+                endPage: 1,
+                rowsPerPage: 20,
+                searchString: query,
+                odsEntityTypes: ["person", "organisation"],
+                availability: { isAvailable: null, isOutOfOffice: null, isNotAvailable: null },
+                location: { postcode: null, range: 10 },
+                connection: { systemName: null, label: null, otherOdsIds: [] },
+                competencies: [],
+                teams: [],
+                roles: [],
+                odsTypes: [],
+                wallManagement: false
+            };
+            
+            log('Request payload:', payload);
+            
+            $.ajax({
+                url: '/api/ods/_search',
+                method: 'POST',
+                data: JSON.stringify(payload),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(data) {
+                    log('✓ ODS API Response:', data);
+                    
+                    // Check response structure
+                    if (Array.isArray(data)) {
+                        log('Response is an array with ' + data.length + ' items');
+                    } else if (data.results) {
+                        log('Response has results property with ' + data.results.length + ' items');
+                    } else if (data.items) {
+                        log('Response has items property with ' + data.items.length + ' items');
+                    } else {
+                        log('Response structure:', Object.keys(data));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    log('✗ ODS API Error: ' + error, {
+                        status: xhr.status,
+                        responseText: xhr.responseText
+                    });
+                }
+            });
+        }
+        
+        // Test Mock PMS
+        function testMockPms() {
+            var query = document.getElementById('directSearchQuery').value;
+            log('Testing Mock PMS with query: ' + query);
+            
+            var mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
+            mockPmsService.search("persons", query, 0)
+                .done(function(results) {
+                    log('✓ Mock PMS Response:', results);
+                })
+                .fail(function(error) {
+                    log('✗ Mock PMS Error:', error);
+                });
+        }
+        
+        // Simulate blade search
+        function simulateBladeSearch() {
+            var query = document.getElementById('bladeSearchQuery').value;
+            var useMockOds = document.getElementById('useMockOds').checked;
+            var useMockPms = document.getElementById('useMockPms').checked;
+            
+            log('Simulating blade search: ' + query, {
+                useMockOds: useMockOds,
+                useMockPms: useMockPms
+            });
+            
+            // Create a minimal blade instance for testing
+            var testBlade = {
+                options: {
+                    useMockOds: useMockOds,
+                    useMockPms: useMockPms,
+                    rowsPerPage: 20
+                },
+                searchEntityType: function() { return "all"; },
+                resultMergerService: Alt.UnifiedDataSearch.Services.resultMergerService,
+                mockPmsService: Alt.UnifiedDataSearch.Services.mockPmsService
+            };
+            
+            // Copy the searchOds method from blade
+            testBlade.searchOds = Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchOds;
+            testBlade.getMockOdsData = Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.getMockOdsData;
+            testBlade.searchPms = Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchPms;
+            
+            // Test ODS search
+            var odsPromise = testBlade.searchOds.call(testBlade, query, 0);
+            odsPromise
+                .done(function(results) {
+                    log('✓ Blade ODS Search Results:', results);
+                })
+                .fail(function(error) {
+                    log('✗ Blade ODS Search Error:', error);
+                });
+            
+            // Test PMS search
+            var pmsPromise = testBlade.searchPms.call(testBlade, query, 0);
+            pmsPromise
+                .done(function(results) {
+                    log('✓ Blade PMS Search Results:', results);
+                })
+                .fail(function(error) {
+                    log('✗ Blade PMS Search Error:', error);
+                });
+            
+            // Test merge
+            $.when(odsPromise, pmsPromise).done(function(odsResponse, pmsResponse) {
+                log('Both searches complete, merging...', {
+                    odsResponse: odsResponse,
+                    pmsResponse: pmsResponse
+                });
+                
+                var merged = testBlade.resultMergerService.mergeResults(odsResponse, pmsResponse);
+                log('✓ Merged Results:', merged);
+            });
+        }
+        
+        // Open actual blade
+        function openBlade() {
+            if (window.parent && window.parent.$ui && window.parent.$ui.stacks) {
+                log('Opening blade in parent window...');
+                window.parent.$ui.stacks.openPanel("Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch", {
+                    useMockOds: document.getElementById('useMockOds').checked,
+                    useMockPms: document.getElementById('useMockPms').checked,
+                    mode: "select"
+                });
+            } else {
+                log('Cannot open blade - $ui.stacks not available. Open this page inside ShareDo.');
+            }
+        }
+        
+        // Initial message
+        log('Debug console ready. Use the buttons above to test different components.');
+    </script>
+</body>
+</html>

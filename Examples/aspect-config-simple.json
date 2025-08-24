@@ -1,0 +1,28 @@
+{
+    "comment": "Simple aspect widget configuration for single entity selection",
+    "widgetType": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker",
+    "configuration": {
+        "_host": {
+            "model": "@parent",
+            "blade": "@blade",
+            "enabled": "@enabled"
+        },
+        "label": "Primary Client",
+        "placeholder": "Click to search for client...",
+        "required": true,
+        "allowMultiple": false,
+        "allowClear": true,
+        "mode": "auto",
+        "fieldName": "clientOdsId",
+        "returnField": "odsId",
+        "entityTypes": ["person", "organisation"],
+        "searchMode": "unified",
+        "useMockPms": true,
+        "useMockOds": false,
+        "showIcon": true,
+        "showEmail": true,
+        "showPhone": false,
+        "showSource": true,
+        "showAddress": false
+    }
+}

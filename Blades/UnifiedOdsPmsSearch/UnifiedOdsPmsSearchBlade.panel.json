@@ -1,0 +1,34 @@
+{
+    "id": "Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch",
+    "priority": 6000,
+    "width": 800,
+    "height": 650,
+    "minWidth": 600,
+    "minHeight": 400,
+    "title": "Unified ODS/PMS Search",
+    "showHeader": true,
+    "showFooter": false,
+    "allowResize": true,
+    "allowMaximize": true,
+    "modal": false,
+    "scripts": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Helpers/namespace.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/MockPmsService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/ResultMergerService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/ConflictDetectorService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Blades/UnifiedOdsPmsSearch/blade.js"
+    ],
+    "styles": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Blades/UnifiedOdsPmsSearch/blade.css"
+    ],
+    "templates": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Blades/UnifiedOdsPmsSearch/blade.html"
+    ],
+    "components": [
+        "Sharedo.UI.Framework.Components.RibbonBar"
+    ],
+    "dependencies": [
+        "jquery",
+        "knockout"
+    ]
+}

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ODS API - ShareDo Search</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .search-box {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 8px;
+            font-size: 14px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .result-item {
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .result-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .result-detail {
+            font-size: 12px;
+            color: #666;
+            margin: 2px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test ShareDo ODS Search API</h1>
+    
+    <div class="search-box">
+        <h2>Search Configuration</h2>
+        <div>
+            <label>API URL: <input type="text" id="apiUrl" value="/api/ods/_search" style="width: 400px;"></label>
+        </div>
+        <div style="margin-top: 10px;">
+            <label>Search String: <input type="text" id="searchString" value="igor" placeholder="Enter search term..."></label>
+            <button onclick="searchODS()">Search ODS</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <label><input type="checkbox" id="searchPersons" checked> Search Persons</label>
+            <label><input type="checkbox" id="searchOrgs" checked> Search Organisations</label>
+        </div>
+        <div style="margin-top: 10px;">
+            <label>Rows per page: <input type="number" id="rowsPerPage" value="20" min="1" max="100" style="width: 60px;"></label>
+        </div>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div class="search-box">
+        <h3>Request Payload</h3>
+        <pre id="requestPayload"></pre>
+    </div>
+    
+    <div class="results">
+        <h3>Search Results (<span id="resultCount">0</span>)</h3>
+        <div id="searchResults"></div>
+    </div>
+    
+    <script>
+        function searchODS() {
+            var apiUrl = document.getElementById('apiUrl').value;
+            var searchString = document.getElementById('searchString').value;
+            var searchPersons = document.getElementById('searchPersons').checked;
+            var searchOrgs = document.getElementById('searchOrgs').checked;
+            var rowsPerPage = parseInt(document.getElementById('rowsPerPage').value) || 20;
+            
+            // Build ODS entity types array
+            var odsEntityTypes = [];
+            if (searchPersons) odsEntityTypes.push("person");
+            if (searchOrgs) odsEntityTypes.push("organisation");
+            
+            // Build the payload according to ShareDo spec
+            var payload = {
+                startPage: 1,
+                endPage: 1,
+                rowsPerPage: rowsPerPage,
+                searchString: searchString,
+                odsEntityTypes: odsEntityTypes,
+                availability: {
+                    isAvailable: null,
+                    isOutOfOffice: null,
+                    isNotAvailable: null
+                },
+                location: {
+                    postcode: null,
+                    range: 10
+                },
+                connection: {
+                    systemName: null,
+                    label: null,
+                    otherOdsIds: []
+                },
+                competencies: [],
+                teams: [],
+                roles: [],
+                odsTypes: [],
+                wallManagement: false
+            };
+            
+            // Display the request payload
+            document.getElementById('requestPayload').textContent = JSON.stringify(payload, null, 2);
+            
+            // Show status
+            showStatus('Searching ODS for "' + searchString + '"...', 'info');
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('resultCount').textContent = '0';
+            
+            // Make the API call
+            $.ajax({
+                url: apiUrl,
+                method: 'POST',
+                data: JSON.stringify(payload),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(data) {
+                    showStatus('Search completed successfully!', 'success');
+                    displayResults(data);
+                },
+                error: function(xhr, status, error) {
+                    var errorMsg = 'Search failed: ' + error;
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg += ' - ' + xhr.responseJSON.message;
+                    }
+                    showStatus(errorMsg, 'error');
+                    
+                    // Display raw response for debugging
+                    document.getElementById('searchResults').innerHTML = 
+                        '<div class="result-item">' +
+                        '<div class="result-header">Error Response</div>' +
+                        '<pre>' + xhr.responseText + '</pre>' +
+                        '</div>';
+                }
+            });
+        }
+        
+        function displayResults(data) {
+            var results = data;
+            
+            // Handle different response formats
+            if (data.results) {
+                results = data.results;
+            } else if (data.items) {
+                results = data.items;
+            } else if (!Array.isArray(data)) {
+                // If data has a data property
+                if (data.data) {
+                    results = data.data;
+                }
+            }
+            
+            // Ensure results is an array
+            if (!Array.isArray(results)) {
+                results = [results];
+            }
+            
+            document.getElementById('resultCount').textContent = results.length;
+            
+            var html = '';
+            results.forEach(function(item, index) {
+                html += '<div class="result-item">';
+                html += '<div class="result-header">';
+                
+                // Display name based on type
+                if (item.firstName || item.lastName) {
+                    html += (item.firstName || '') + ' ' + (item.lastName || '');
+                } else if (item.name) {
+                    html += item.name;
+                } else if (item.organisationName) {
+                    html += item.organisationName;
+                } else {
+                    html += 'Result ' + (index + 1);
+                }
+                
+                html += '</div>';
+                
+                // Display key fields
+                if (item.id || item.odsId) {
+                    html += '<div class="result-detail">ID: ' + (item.id || item.odsId) + '</div>';
+                }
+                if (item.odsType) {
+                    html += '<div class="result-detail">Type: ' + item.odsType + '</div>';
+                }
+                if (item.email) {
+                    html += '<div class="result-detail">Email: ' + item.email + '</div>';
+                }
+                if (item.phone || item.mobilePhone) {
+                    html += '<div class="result-detail">Phone: ' + (item.phone || item.mobilePhone) + '</div>';
+                }
+                if (item.address) {
+                    html += '<div class="result-detail">Address: ' + item.address + '</div>';
+                }
+                if (item.suburb && item.postcode) {
+                    html += '<div class="result-detail">Location: ' + item.suburb + ' ' + item.postcode + '</div>';
+                }
+                if (item.abn) {
+                    html += '<div class="result-detail">ABN: ' + item.abn + '</div>';
+                }
+                
+                // Show raw data in collapsible section
+                html += '<details style="margin-top: 10px;">';
+                html += '<summary style="cursor: pointer; color: #007bff;">View Raw Data</summary>';
+                html += '<pre style="margin-top: 10px; font-size: 11px;">' + JSON.stringify(item, null, 2) + '</pre>';
+                html += '</details>';
+                
+                html += '</div>';
+            });
+            
+            if (results.length === 0) {
+                html = '<div class="result-item">No results found for "' + document.getElementById('searchString').value + '"</div>';
+            }
+            
+            document.getElementById('searchResults').innerHTML = html;
+        }
+        
+        function showStatus(message, type) {
+            var statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+        }
+        
+        // Test searches on load
+        window.onload = function() {
+            showStatus('Ready to search. Try searching for: igor, cameron, rebecca, adrian, sarah', 'info');
+        };
+    </script>
+</body>
+</html>

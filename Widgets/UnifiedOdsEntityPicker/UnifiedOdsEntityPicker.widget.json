@@ -1,0 +1,61 @@
+{
+    "id": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker",
+    "priority": 6000,
+    "designer": {
+        "allowInPortalDesigner": true,
+        "allowInSharedoPortalDesigner": true,
+        "allowAspectAdapter": true,
+        "title": "Unified ODS/PMS Entity Picker",
+        "icon": "fa-users",
+        "description": "Search and select entities from both ShareDo ODS and PMS systems with automatic matching and conflict detection",
+        "categories": [
+            "Alt Custom",
+            "Entity Selection",
+            "Participants",
+            "ODS"
+        ],
+        "isConfigurable": true,
+        "configurationWidget": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPickerDesigner",
+        "defaultConfigurationJson": {
+            "label": "Select Entity",
+            "placeholder": "Click to search and select...",
+            "required": false,
+            "allowMultiple": false,
+            "allowClear": true,
+            "entityTypes": ["person", "organisation"],
+            "searchMode": "unified",
+            "useMockPms": true,
+            "useMockOds": true,
+            "showIcon": true,
+            "showEmail": true,
+            "showPhone": false,
+            "showSource": true,
+            "mode": "select",
+            "useShareDoComponent": false,
+            "displayMode": "simple",
+            "roleSystemName": "participant",
+            "roleLabel": "Select Entity",
+            "viewMode": "card",
+            "showSearchOds": false,
+            "allowInlineSearch": false
+        }
+    },
+    "scripts": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Helpers/namespace.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/MockPmsService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/ResultMergerService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Widgets/UnifiedOdsEntityPicker/UnifiedOdsEntityPicker.js"
+    ],
+    "styles": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Widgets/UnifiedOdsEntityPicker/UnifiedOdsEntityPicker.css"
+    ],
+    "templates": [
+        "/_ideFiles/Alt/UnifiedDataSearch/Widgets/UnifiedOdsEntityPicker/UnifiedOdsEntityPicker.html"
+    ],
+    "menuTemplates": [],
+    "components": [],
+    "dependencies": [
+        "jquery",
+        "knockout"
+    ]
+}

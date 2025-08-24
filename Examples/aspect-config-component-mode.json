@@ -1,0 +1,34 @@
+{
+    "comment": "Aspect widget using ShareDo component mode for visual consistency",
+    "widgetType": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker",
+    "configuration": {
+        "_host": {
+            "model": "@parent",
+            "blade": "@blade",
+            "enabled": "@enabled"
+        },
+        "useShareDoComponent": true,
+        "displayMode": "component",
+        "roleSystemName": "client",
+        "roleLabel": "Matter Client",
+        "viewMode": "card",
+        "label": "Matter Client",
+        "required": true,
+        "allowMultiple": false,
+        "mode": "auto",
+        "fieldName": "matterClientOdsId",
+        "returnField": "odsId",
+        "entityTypes": ["person", "organisation"],
+        "searchMode": "unified",
+        "useMockPms": false,
+        "useMockOds": false,
+        "pmsTimeout": 5000,
+        "sharedoId": "@workItemId",
+        "parentSharedoId": "@parentWorkItemId",
+        "sharedoTypeSystemName": "matter",
+        "showSearchOds": false,
+        "allowInlineSearch": false,
+        "bladeName": "Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch",
+        "bladeWidth": 750
+    }
+}

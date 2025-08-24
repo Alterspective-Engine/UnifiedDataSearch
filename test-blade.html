@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test UnifiedDataSearch Blade</title>
+    <script>
+        // Test opening the blade
+        function testOpenBlade() {
+            if (typeof $ui !== 'undefined' && $ui.stacks && $ui.stacks.openPanel) {
+                console.log("Opening UnifiedDataSearch blade...");
+                
+                $ui.stacks.openPanel("Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch", {
+                    sharedoId: "TEST-001",
+                    mode: "auto"
+                    // Note: ODS always uses real API, PMS always uses mock data
+                }, function() {
+                    console.log("Blade closed");
+                });
+            } else {
+                console.error("$ui.stacks.openPanel not available. Make sure you're running this in ShareDo environment.");
+                alert("This test must be run within the ShareDo environment where $ui.stacks.openPanel is available.");
+            }
+        }
+        
+        // Test with different configurations
+        function testSelectMode() {
+            if (typeof $ui !== 'undefined' && $ui.stacks && $ui.stacks.openPanel) {
+                $ui.stacks.openPanel("Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch", {
+                    mode: "select"
+                    // Note: ODS always uses real API, PMS always uses mock data
+                });
+            }
+        }
+        
+        // Test search functionality directly
+        function testMockServices() {
+            console.log("Testing Mock Services...");
+            
+            // Test PMS Service
+            if (typeof Alt !== 'undefined' && Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services) {
+                var pmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
+                
+                // Search for "igor"
+                pmsService.search("persons", "igor", 0).done(function(results) {
+                    console.log("PMS Search Results for 'igor':", results);
+                });
+                
+                // Search for all persons
+                pmsService.search("persons", "", 0).done(function(results) {
+                    console.log("All PMS Persons:", results);
+                });
+                
+                // Search organisations
+                pmsService.search("organisations", "legal", 0).done(function(results) {
+                    console.log("PMS Organisations with 'legal':", results);
+                });
+            } else {
+                console.error("Services not loaded. Make sure the blade has been opened at least once.");
+            }
+        }
+        
+        // Clear mock data from memory
+        function clearMockData() {
+            if (typeof Alt !== 'undefined' && Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services) {
+                Alt.UnifiedDataSearch.Services.mockPmsService.clearMockData();
+                console.log("Mock data cleared from memory. Will reload from JSON files on next search.");
+            }
+        }
+        
+        // View current mock data
+        function viewMockData() {
+            if (typeof Alt !== 'undefined' && Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services) {
+                var service = Alt.UnifiedDataSearch.Services.mockPmsService;
+                console.log("Current Mock Persons:", service.mockPersons);
+                console.log("Current Mock Organisations:", service.mockOrganisations);
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #667eea;
+        }
+        .test-section {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        code {
+            background: #e5e7eb;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>UnifiedDataSearch Blade Test Page</h1>
+    
+    <div class="info">
+        <strong>Note:</strong> This test page must be run within the ShareDo environment where <code>$ui.stacks.openPanel</code> is available.
+        Open the browser console to see detailed output.
+    </div>
+    
+    <div class="test-section">
+        <h2>Blade Tests</h2>
+        <button onclick="testOpenBlade()" style="background: #22c55e;">Open Blade (Auto Mode) - Auto-imports PMS to ODS</button>
+        <button onclick="testSelectMode()">Open Blade (Select Mode) - Just Returns Selection</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Service Tests</h2>
+        <button onclick="testMockServices()">Test Mock Services</button>
+        <button onclick="viewMockData()">View Current Mock Data</button>
+        <button onclick="clearMockData()">Clear Mock Data</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Console Commands</h2>
+        <p>You can also run these commands in the browser console:</p>
+        <pre>
+// Open blade in AUTO MODE (auto-imports PMS records to ShareDo ODS)
+$ui.stacks.openPanel("Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch", {
+    mode: "auto"  // <-- AUTO-IMPORTS PMS TO ODS!
+});
+
+// Open blade in SELECT MODE (just returns selected entity)
+$ui.stacks.openPanel("Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch", {
+    mode: "select"  // <-- Just returns selection, no import
+});
+
+// Test mock PMS service
+Alt.UnifiedDataSearch.Services.mockPmsService.search("persons", "igor", 0)
+    .done(function(results) { console.log(results); });
+
+// Add custom mock person
+Alt.UnifiedDataSearch.Services.mockPmsService.addMockPerson({
+    firstName: "Test",
+    lastName: "User",
+    email: "test@example.com",
+    phone: "0411111111"
+});
+        </pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <ul>
+            <li>✅ Blade should open with search interface</li>
+            <li>✅ Typing "igor" should find matches in both ODS and PMS mock data</li>
+            <li>✅ "Igor Jericevich" should appear as a matched record with conflicts (different email/address)</li>
+            <li>✅ "Sarah Anderson" should appear as matched with minor phone number difference</li>
+            <li>✅ "Legal Solutions" organisation should be matched by ABN with conflicts</li>
+            <li>✅ Progress indicators should animate during search</li>
+            <li>✅ Entity type filter should work (All/People/Organisations)</li>
+            <li>✅ Clicking a result should trigger selection action</li>
+        </ul>
+    </div>
+</body>
+</html>

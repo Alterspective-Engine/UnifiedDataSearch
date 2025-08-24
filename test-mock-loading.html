@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Mock Data Loading</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.1/knockout-latest.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        button { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .results { margin-top: 20px; padding: 15px; background: white; border: 1px solid #ddd; border-radius: 5px; max-height: 400px; overflow-y: auto; }
+        .result-item { padding: 8px; margin: 5px 0; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 3px; }
+        pre { background: #333; color: #0f0; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        .stats { display: flex; gap: 20px; margin: 10px 0; }
+        .stat-box { flex: 1; padding: 10px; background: white; border: 1px solid #ddd; border-radius: 5px; text-align: center; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #007bff; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Test Mock Data Loading</h1>
+    
+    <div class="section">
+        <h2>Data Loading Controls</h2>
+        <button onclick="loadMockData()">Load Mock Data from JSON Files</button>
+        <button onclick="clearMockData()">Clear In-Memory Data</button>
+        <button onclick="reloadFromFiles()">Force Reload from Files</button>
+        <button onclick="testSearch('igor')">Search for "Igor"</button>
+        <button onclick="testSearch('cameron')">Search for "Cameron"</button>
+        <button onclick="testSearch('legal')">Search Orgs for "Legal"</button>
+        <button onclick="showStats()">Show Statistics</button>
+    </div>
+    
+    <div id="status" class="status info">Ready to test mock data loading</div>
+    
+    <div class="section">
+        <h2>Data Statistics</h2>
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number" id="personCount">0</div>
+                <div class="stat-label">Persons Loaded</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="orgCount">0</div>
+                <div class="stat-label">Organisations Loaded</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="loadTime">0ms</div>
+                <div class="stat-label">Load Time</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Search Results</h2>
+        <div id="searchResults" class="results">
+            <p>No search performed yet</p>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Console Output</h2>
+        <pre id="console">Waiting for actions...</pre>
+    </div>
+    
+    <!-- Load the actual services -->
+    <script src="Helpers/namespace.js"></script>
+    <script src="Services/MockPmsService.js"></script>
+    
+    <script>
+        var mockService = Alt.UnifiedDataSearch.Services.mockPmsService;
+        var consoleDiv = document.getElementById('console');
+        var startTime;
+        
+        function log(msg, data) {
+            var timestamp = new Date().toISOString().substr(11, 12);
+            var logMsg = timestamp + ' - ' + msg;
+            if (data !== undefined) {
+                logMsg += '\n' + JSON.stringify(data, null, 2);
+            }
+            consoleDiv.textContent = logMsg + '\n\n' + consoleDiv.textContent;
+            if (consoleDiv.textContent.length > 5000) {
+                consoleDiv.textContent = consoleDiv.textContent.substring(0, 5000) + '\n...truncated';
+            }
+            console.log(msg, data);
+        }
+        
+        function setStatus(msg, type) {
+            var statusDiv = document.getElementById('status');
+            statusDiv.textContent = msg;
+            statusDiv.className = 'status ' + type;
+        }
+        
+        function loadMockData() {
+            setStatus('Loading mock data from JSON files...', 'info');
+            startTime = Date.now();
+            
+            mockService.initializeMockData()
+                .done(function() {
+                    var loadTime = Date.now() - startTime;
+                    setStatus('Mock data loaded successfully!', 'success');
+                    log('Data loaded in ' + loadTime + 'ms');
+                    showStats();
+                    document.getElementById('loadTime').textContent = loadTime + 'ms';
+                })
+                .fail(function(error) {
+                    setStatus('Failed to load mock data: ' + error, 'error');
+                    log('Load error:', error);
+                });
+        }
+        
+        function clearMockData() {
+            mockService.clearMockData();
+            setStatus('In-memory data cleared', 'info');
+            log('Cleared mock data from memory');
+            showStats();
+        }
+        
+        function reloadFromFiles() {
+            setStatus('Forcing reload from JSON files...', 'info');
+            startTime = Date.now();
+            
+            mockService.reloadFromFiles()
+                .done(function() {
+                    var loadTime = Date.now() - startTime;
+                    setStatus('Data reloaded from files successfully!', 'success');
+                    log('Reloaded in ' + loadTime + 'ms');
+                    showStats();
+                    document.getElementById('loadTime').textContent = loadTime + 'ms';
+                })
+                .fail(function(error) {
+                    setStatus('Failed to reload: ' + error, 'error');
+                    log('Reload error:', error);
+                });
+        }
+        
+        function testSearch(query) {
+            var type = query === 'legal' ? 'organisations' : 'persons';
+            setStatus('Searching ' + type + ' for "' + query + '"...', 'info');
+            
+            mockService.search(type, query, 0)
+                .done(function(results) {
+                    setStatus('Search completed: ' + results.totalResults + ' total results', 'success');
+                    log('Search results for "' + query + '":', {
+                        totalResults: results.totalResults,
+                        pageResults: results.results.length,
+                        hasMore: results.hasMore
+                    });
+                    displayResults(results.results);
+                })
+                .fail(function(error) {
+                    setStatus('Search failed: ' + error.error, 'error');
+                    log('Search error:', error);
+                });
+        }
+        
+        function displayResults(results) {
+            var html = '';
+            if (results.length === 0) {
+                html = '<p>No results found</p>';
+            } else {
+                results.forEach(function(item, index) {
+                    var name = item.firstName ? item.firstName + ' ' + item.lastName : (item.name || item.organisationName);
+                    var details = [];
+                    if (item.email) details.push('Email: ' + item.email);
+                    if (item.phone) details.push('Phone: ' + item.phone);
+                    if (item.suburb) details.push('Location: ' + item.suburb + ', ' + item.state);
+                    if (item.abn) details.push('ABN: ' + item.abn);
+                    
+                    html += '<div class="result-item">';
+                    html += '<strong>' + (index + 1) + '. ' + name + '</strong> (ID: ' + item.id + ')<br>';
+                    html += details.join(' | ');
+                    html += '</div>';
+                });
+            }
+            document.getElementById('searchResults').innerHTML = html;
+        }
+        
+        function showStats() {
+            document.getElementById('personCount').textContent = mockService.mockPersons.length;
+            document.getElementById('orgCount').textContent = mockService.mockOrganisations.length;
+            
+            log('Current data statistics:', {
+                persons: mockService.mockPersons.length,
+                organisations: mockService.mockOrganisations.length,
+                dataLoaded: mockService.dataLoaded,
+                samplePerson: mockService.mockPersons.length > 0 ? mockService.mockPersons[0] : null,
+                sampleOrg: mockService.mockOrganisations.length > 0 ? mockService.mockOrganisations[0] : null
+            });
+        }
+        
+        // Initial check
+        window.onload = function() {
+            log('Page loaded. Mock service ready.');
+            showStats();
+        };
+    </script>
+</body>
+</html>

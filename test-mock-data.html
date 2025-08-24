@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mock Data - UnifiedDataSearch</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.1/knockout-latest.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .search-section {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .search-input {
+            width: 300px;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .search-button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .search-button:hover {
+            background: #0056b3;
+        }
+        .results-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .results-column {
+            flex: 1;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        .result-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .result-card.matched {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        .result-card.conflict {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .result-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .result-detail {
+            font-size: 12px;
+            color: #666;
+            margin: 2px 0;
+        }
+        .conflict-indicator {
+            color: #dc3545;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .status {
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .clear-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <h1>UnifiedDataSearch - Mock Data Test</h1>
+    
+    <div class="search-section">
+        <h2>Test Search</h2>
+        <input type="text" id="searchQuery" class="search-input" placeholder="Search for Igor, Cameron, Rebecca, Adrian, etc.">
+        <button onclick="testSearch()" class="search-button">Search</button>
+        <button onclick="clearLocalStorage()" class="clear-button">Clear Local Storage</button>
+        
+        <div style="margin-top: 10px;">
+            <label><input type="radio" name="entityType" value="all" checked> All</label>
+            <label><input type="radio" name="entityType" value="persons"> Persons</label>
+            <label><input type="radio" name="entityType" value="organisations"> Organisations</label>
+        </div>
+    </div>
+    
+    <div id="status" class="status"></div>
+    
+    <div class="results-container">
+        <div class="results-column">
+            <h3>PMS Results (<span id="pmsCount">0</span>)</h3>
+            <div id="pmsResults"></div>
+        </div>
+        
+        <div class="results-column">
+            <h3>ODS Results (<span id="odsCount">0</span>)</h3>
+            <div id="odsResults"></div>
+        </div>
+        
+        <div class="results-column">
+            <h3>Merged Results (<span id="mergedCount">0</span>)</h3>
+            <div id="mergedResults"></div>
+        </div>
+    </div>
+    
+    <script src="Helpers/namespace.js"></script>
+    <script src="Services/MockPmsService.js"></script>
+    <script src="Services/ResultMergerService.js"></script>
+    <script src="Services/ConflictDetectorService.js"></script>
+    
+    <script>
+        // Initialize services
+        var mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
+        var resultMergerService = Alt.UnifiedDataSearch.Services.resultMergerService;
+        var conflictDetectorService = Alt.UnifiedDataSearch.Services.conflictDetectorService;
+        
+        // Mock ODS data (same as in blade.js)
+        var mockOdsPersons = [
+            {
+                id: "ODS-P001",
+                odsId: "ODS-P001",
+                odsType: "person",
+                firstName: "Sarah",
+                lastName: "Anderson",
+                email: "sarah.anderson@lawfirm.com",
+                phone: "0412111222",
+                dateOfBirth: "1982-04-15",
+                address: "100 Legal St",
+                suburb: "Sydney",
+                postcode: "2000"
+            },
+            {
+                id: "ODS-P002",
+                odsId: "ODS-P002",
+                odsType: "person",
+                firstName: "David",
+                lastName: "Chen",
+                email: "david.chen@example.com",
+                phone: "0423333444",
+                address: "200 Court Ave",
+                suburb: "Melbourne",
+                postcode: "3000"
+            },
+            {
+                id: "ODS-P003",
+                odsId: "ODS-P003",
+                odsType: "person",
+                firstName: "Maria",
+                lastName: "Garcia",
+                email: "m.garcia@business.com",
+                phone: "0434444555"
+            },
+            {
+                id: "ODS-P004",
+                odsId: "ODS-P004",
+                odsType: "person",
+                firstName: "Igor",
+                lastName: "Jericevich",
+                email: "igor@alterspective.com",
+                phone: "0445555666",
+                address: "300 Tech Park",
+                suburb: "Brisbane",
+                postcode: "4000"
+            }
+        ];
+        
+        var mockOdsOrganisations = [
+            {
+                id: "ODS-O001",
+                odsId: "ODS-O001",
+                odsType: "organisation",
+                name: "Legal Solutions Pty Ltd",
+                organisationName: "Legal Solutions Pty Ltd",
+                tradingName: "Legal Solutions",
+                abn: "11223344556",
+                email: "info@legalsolutions.com.au",
+                phone: "0298887777"
+            },
+            {
+                id: "ODS-O002",
+                odsId: "ODS-O002",
+                odsType: "organisation",
+                name: "Corporate Advisory Services",
+                organisationName: "Corporate Advisory Services",
+                abn: "22334455667",
+                email: "contact@cas.com.au"
+            }
+        ];
+        
+        function searchOds(query, type) {
+            var results = [];
+            var searchTerm = (query || "").toLowerCase();
+            
+            if (type === "all" || type === "persons") {
+                mockOdsPersons.forEach(function(person) {
+                    if (!searchTerm || 
+                        (person.firstName && person.firstName.toLowerCase().indexOf(searchTerm) > -1) ||
+                        (person.lastName && person.lastName.toLowerCase().indexOf(searchTerm) > -1) ||
+                        (person.email && person.email.toLowerCase().indexOf(searchTerm) > -1)) {
+                        results.push(person);
+                    }
+                });
+            }
+            
+            if (type === "all" || type === "organisations") {
+                mockOdsOrganisations.forEach(function(org) {
+                    if (!searchTerm ||
+                        (org.name && org.name.toLowerCase().indexOf(searchTerm) > -1) ||
+                        (org.tradingName && org.tradingName.toLowerCase().indexOf(searchTerm) > -1) ||
+                        (org.abn && org.abn.indexOf(searchTerm) > -1)) {
+                        results.push(org);
+                    }
+                });
+            }
+            
+            return { results: results, totalResults: results.length };
+        }
+        
+        function testSearch() {
+            var query = document.getElementById('searchQuery').value;
+            var entityType = document.querySelector('input[name="entityType"]:checked').value;
+            
+            document.getElementById('status').innerHTML = 'Searching for: "' + query + '" (Type: ' + entityType + ')...';
+            
+            // Clear previous results
+            document.getElementById('pmsResults').innerHTML = '';
+            document.getElementById('odsResults').innerHTML = '';
+            document.getElementById('mergedResults').innerHTML = '';
+            
+            // Search PMS
+            var pmsType = entityType === "all" ? "persons" : (entityType === "persons" ? "persons" : "organisations");
+            mockPmsService.search(pmsType, query, 0).done(function(pmsData) {
+                displayPmsResults(pmsData);
+                
+                // Search ODS
+                var odsData = searchOds(query, entityType);
+                displayOdsResults(odsData);
+                
+                // Merge results
+                var merged = resultMergerService.mergeResults(odsData, pmsData);
+                var enriched = resultMergerService.enrichResults(merged);
+                displayMergedResults(enriched);
+                
+                document.getElementById('status').innerHTML += ' Complete!';
+            });
+        }
+        
+        function displayPmsResults(data) {
+            var container = document.getElementById('pmsResults');
+            document.getElementById('pmsCount').textContent = data.totalResults;
+            
+            data.results.forEach(function(item) {
+                var card = createResultCard(item, 'pms');
+                container.appendChild(card);
+            });
+        }
+        
+        function displayOdsResults(data) {
+            var container = document.getElementById('odsResults');
+            document.getElementById('odsCount').textContent = data.totalResults;
+            
+            data.results.forEach(function(item) {
+                var card = createResultCard(item, 'ods');
+                container.appendChild(card);
+            });
+        }
+        
+        function displayMergedResults(data) {
+            var container = document.getElementById('mergedResults');
+            document.getElementById('mergedCount').textContent = data.length;
+            
+            data.forEach(function(item) {
+                var card = createMergedResultCard(item);
+                container.appendChild(card);
+            });
+        }
+        
+        function createResultCard(item, source) {
+            var div = document.createElement('div');
+            div.className = 'result-card';
+            
+            var name = item.firstName ? item.firstName + ' ' + item.lastName : (item.name || item.organisationName);
+            
+            div.innerHTML = '<div class="result-header">' + name + '</div>' +
+                '<div class="result-detail">ID: ' + item.id + '</div>' +
+                '<div class="result-detail">Email: ' + (item.email || 'N/A') + '</div>' +
+                '<div class="result-detail">Phone: ' + (item.phone || 'N/A') + '</div>' +
+                '<div class="result-detail">Source: ' + source.toUpperCase() + '</div>';
+                
+            return div;
+        }
+        
+        function createMergedResultCard(item) {
+            var div = document.createElement('div');
+            div.className = 'result-card';
+            
+            if (item.source === 'matched') {
+                div.className += ' matched';
+            }
+            if (item.hasConflicts) {
+                div.className += ' conflict';
+            }
+            
+            div.innerHTML = '<div class="result-header">' + item.displayName + '</div>' +
+                '<div class="result-detail">Source: ' + item.source + '</div>' +
+                '<div class="result-detail">ODS ID: ' + (item.odsId || 'N/A') + '</div>' +
+                '<div class="result-detail">PMS ID: ' + (item.pmsId || 'N/A') + '</div>';
+            
+            if (item.hasConflicts && item.conflicts) {
+                var conflictText = '<div class="conflict-indicator">Conflicts detected:</div>';
+                item.conflicts.forEach(function(conflict) {
+                    conflictText += '<div class="result-detail">- ' + conflict.label + '</div>';
+                });
+                div.innerHTML += conflictText;
+            }
+            
+            return div;
+        }
+        
+        function clearLocalStorage() {
+            if (confirm('Clear all mock data from localStorage?')) {
+                localStorage.removeItem('alt.unifiedSearch.mockPmsData');
+                mockPmsService.initializeMockData();
+                alert('Local storage cleared and mock data reinitialized!');
+            }
+        }
+        
+        // Initial status
+        document.getElementById('status').innerHTML = 'Ready. Try searching for: Igor, Cameron, Rebecca, Adrian, Sarah, Maria';
+    </script>
+</body>
+</html>
