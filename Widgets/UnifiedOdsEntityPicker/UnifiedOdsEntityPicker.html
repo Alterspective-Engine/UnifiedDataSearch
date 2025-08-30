@@ -1,231 +1,112 @@
-<div class="Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker ods-entity-picker-widget form-horizontal">
+<div class="Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker ods-entity-picker-widget">
     
-    <!-- Standard ShareDo Widget Layout with Bootstrap Grid -->
-    <div class="form-group">
-        
-        <!-- Left-side Label (ShareDo style) -->
-        <!-- ko if: options.label && !options.hideLabel -->
-        <label class="col-sm-3 control-label">
-            <span data-bind="text: options.label"></span>
-            <!-- ko if: options.required -->
-            <span class="required-indicator text-danger">*</span>
-            <!-- /ko -->
-        </label>
-        <!-- /ko -->
-        
-        <!-- Main Content Area -->
-        <div data-bind="css: options.hideLabel ? 'col-sm-12' : 'col-sm-9'">
-            <div class="entity-picker-content">
-            
-            <!-- When no entity is selected -->
-            <!-- ko if: !hasValue() -->
-            <div class="empty-state">
-                
-                <!-- Inline Search Mode -->
-                <!-- ko if: options.allowInlineSearch && !isSearching() -->
-                <div class="inline-search-container">
-                    <div class="input-group">
-                        <input type="text" 
-                               class="form-control inline-search-input"
-                               data-bind="value: inlineSearchQuery,
-                                          valueUpdate: 'input',
-                                          attr: { 
-                                              placeholder: options.placeholder || 'Type to search...',
-                                              disabled: _host.enabled === false
-                                          },
-                                          event: { keyup: handleInlineSearch }" />
-                        <div class="input-group-append">
-                            <button class="btn btn-outline-secondary" type="button"
-                                    data-bind="click: executeInlineSearch,
-                                               enable: inlineSearchQuery() && inlineSearchQuery().length >= 2">
-                                <i class="fa fa-search"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Results Dropdown -->
-                    <!-- ko if: showQuickResults() && quickSearchResults().length > 0 -->
-                    <div class="quick-results-dropdown">
-                        <!-- ko foreach: quickSearchResults -->
-                        <div class="quick-result-item" data-bind="click: $parent.selectQuickResult">
-                            <i class="entity-icon" data-bind="css: $parent.getEntityIcon($data)"></i>
-                            <span class="entity-name" data-bind="text: $parent.getEntityDisplayName($data)"></span>
-                            <!-- ko if: $parent.options.showSource && $data.source -->
-                            <span class="source-indicator" data-bind="css: 'source-' + $data.source">
-                                <i class="fa fa-circle"></i>
-                            </span>
-                            <!-- /ko -->
-                        </div>
-                        <!-- /ko -->
-                        <div class="quick-result-footer">
-                            <a href="#" data-bind="click: openSearchBlade">
-                                <i class="fa fa-search-plus"></i> Advanced Search...
-                            </a>
-                        </div>
-                    </div>
-                    <!-- /ko -->
-                </div>
-                <!-- /ko -->
-                
-                <!-- Standard Search Button Mode -->
-                <!-- ko ifnot: options.allowInlineSearch -->
-                <div class="search-button-container">
-                    <button type="button" 
-                            class="btn btn-outline-primary search-entity-btn"
-                            data-bind="click: openSearchBlade,
-                                       enable: _host.enabled !== false">
-                        <i class="fa fa-search"></i>
-                        <span data-bind="text: options.searchButtonText || 'Search ODS & PMS'"></span>
-                    </button>
-                </div>
-                <!-- /ko -->
-                
-                <!-- Add New Entity Button (if allowed) -->
-                <!-- ko if: options.allowAddNew && !options.allowInlineSearch -->
-                <div class="add-new-container">
-                    <button type="button" 
-                            class="btn btn-link btn-sm"
-                            data-bind="click: addNewEntity,
-                                       enable: _host.enabled !== false">
-                        <i class="fa fa-plus"></i>
-                        <span>Add New</span>
-                    </button>
-                </div>
-                <!-- /ko -->
-                
+    <!-- Empty State - No Entity Selected -->
+    <!-- ko if: !hasValue() -->
+    <div class="card entity-card">
+        <div class="status-section">
+            <span class="fa fa-2x fa-male"></span>
+        </div>
+        <div class="content-section card-message">
+            <span class="card-message-text" data-bind="text: options.label || 'Primary Owner'"></span>
+            <div class="search-prompt" data-bind="click: openSearchBlade">
+                <i class="fa fa-search"></i>
+                <span>Click to search</span>
             </div>
-            <!-- /ko -->
-            
-            <!-- Single Entity Selected (Simple View like ShareDo) -->
-            <!-- ko if: !options.allowMultiple && hasValue() -->
-            <div class="selected-entity-card">
-                <div class="entity-card-content">
-                    
-                    <!-- Entity Icon -->
-                    <i class="entity-icon" data-bind="css: getEntityIcon(selectedEntity())"></i>
-                    
-                    <!-- Entity Name -->
-                    <span class="entity-name" data-bind="text: getEntityDisplayName(selectedEntity())"></span>
-                    
-                    <!-- Email if shown -->
-                    <!-- ko if: options.showEmail && selectedEntity().email -->
-                    <span class="detail-item">
-                        <i class="fa fa-envelope"></i>
-                        <span data-bind="text: selectedEntity().email"></span>
-                    </span>
-                    <!-- /ko -->
-                    
-                    <!-- Source indicator -->
-                    <!-- ko if: options.showSource && selectedEntity().source -->
-                    <span class="source-indicator" data-bind="css: 'source-' + selectedEntity().source">
-                        <i class="fa fa-circle"></i>
-                    </span>
-                    <!-- /ko -->
-                    
-                    <!-- Action Buttons -->
-                    <div class="entity-actions">
-                        <!-- Change Button -->
-                        <button type="button" 
-                                class="btn btn-sm btn-link"
-                                data-bind="click: openSearchBlade,
-                                           enable: _host.enabled !== false"
-                                title="Change">
-                            <i class="fa fa-search"></i>
-                        </button>
-                        
-                        <!-- Remove Button -->
-                        <!-- ko if: options.allowClear && !options.required -->
-                        <button type="button" 
-                                class="btn btn-sm btn-link text-danger"
-                                data-bind="click: clearSelection,
-                                           enable: _host.enabled !== false"
-                                title="Remove">
-                            <i class="fa fa-times"></i>
-                        </button>
-                        <!-- /ko -->
-                    </div>
-                </div>
-            </div>
-            <!-- /ko -->
-            
-            <!-- Multiple Entities Selected (List View) -->
-            <!-- ko if: options.allowMultiple && hasValue() -->
-            <div class="selected-entities-list-view">
-                <!-- ko foreach: selectedEntities -->
-                <div class="entity-list-item">
-                    <div class="entity-list-content">
-                        <i class="entity-icon" data-bind="css: $parent.getEntityIcon($data)"></i>
-                        <span class="entity-name" data-bind="text: $parent.getEntityDisplayName($data)"></span>
-                        
-                        <!-- ko if: $parent.options.showEmail && $data.email -->
-                        <span class="detail-item text-muted">
-                            <i class="fa fa-envelope"></i>
-                            <small data-bind="text: $data.email"></small>
-                        </span>
-                        <!-- /ko -->
-                        
-                        <!-- ko if: $parent.options.showSource && $data.source -->
-                        <span class="source-indicator pull-right" data-bind="css: 'source-' + $data.source">
-                            <i class="fa fa-circle"></i>
-                        </span>
-                        <!-- /ko -->
-                    </div>
-                    
-                    <div class="entity-list-actions">
-                        <button type="button" 
-                                class="btn btn-sm btn-link text-danger"
-                                data-bind="click: function() { $parent.removeEntity($data); },
-                                           enable: $parent._host.enabled !== false"
-                                title="Remove">
-                            <i class="fa fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <!-- /ko -->
-                
-                <!-- Add More Button -->
-                <div class="add-more-container">
-                    <button type="button" 
-                            class="btn btn-sm btn-outline-primary"
-                            data-bind="click: openSearchBlade,
-                                       enable: _host.enabled !== false">
-                        <i class="fa fa-plus"></i>
-                        <span>Add More</span>
-                    </button>
-                </div>
-            </div>
-            <!-- /ko -->
-            
-            <!-- Loading State -->
-            <!-- ko if: isSearching() -->
-            <div class="loading-overlay">
-                <div class="loading-content">
-                    <i class="fa fa-spinner fa-spin"></i>
-                    <span>Searching...</span>
-                </div>
-            </div>
-            <!-- /ko -->
-            
-            </div>
-            
-            <!-- Validation Message -->
-            <!-- ko if: !isValid() && options.required -->
-            <div class="validation-message text-danger">
-                <small>
-                    <i class="fa fa-exclamation-circle"></i>
-                    <span data-bind="text: options.requiredMessage || 'This field is required'"></span>
-                </small>
-            </div>
-            <!-- /ko -->
-            
-            <!-- Help Text -->
-            <!-- ko if: options.helpText -->
-            <div class="help-text text-muted">
-                <small data-bind="text: options.helpText"></small>
-            </div>
-            <!-- /ko -->
-            
+        </div>
+        <div class="menu-section" data-bind="visible: options.enabled !== false">
+            <a href="#" data-bind="click: openSearchBlade" class="fa fa-chevron-right text-primary"></a>
         </div>
     </div>
+    <!-- /ko -->
+    
+    <!-- Single Entity Selected -->
+    <!-- ko if: !options.allowMultiple && hasValue() -->
+    <div class="card entity-card with-content">
+        <div class="status-section">
+            <!-- ko if: selectedEntity().isUser && selectedEntity().profileImageUrl -->
+            <img class="user-profile-image" 
+                 data-bind="attr: { src: selectedEntity().profileImageUrl }" />
+            <!-- /ko -->
+            <!-- ko if: !selectedEntity().isUser || !selectedEntity().profileImageUrl -->
+            <span class="fa fa-2x" data-bind="css: getEntityIcon(selectedEntity())"></span>
+            <!-- /ko -->
+        </div>
+        <div class="content-section">
+            <div class="entity-header">
+                <span class="entity-header__title" data-bind="text: getEntityDisplayName(selectedEntity())"></span>
+                <!-- ko if: selectedEntity().roleLabel -->
+                <div class="entity-header__tags">
+                    <span class="entity-header__tags-item label label-primary" data-bind="text: selectedEntity().roleLabel"></span>
+                </div>
+                <!-- /ko -->
+            </div>
+            <div class="entity-content">
+                <div class="row">
+                    <!-- ko if: selectedEntity().email || selectedEntity().phone -->
+                    <div class="entity-content-block col-lg-12">
+                        <!-- ko if: selectedEntity().email -->
+                        <span class="entity-content-block__title">Email</span>
+                        <p class="entity-content-block__content" data-bind="text: selectedEntity().email"></p>
+                        <!-- /ko -->
+                        <!-- ko if: selectedEntity().phone -->
+                        <span class="entity-content-block__title">Phone</span>
+                        <p class="entity-content-block__content" data-bind="text: selectedEntity().phone"></p>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+        <div class="menu-section" data-bind="visible: options.enabled !== false">
+            <!-- ko if: options.allowEdit -->
+            <a href="#" data-bind="click: editEntity" class="fa fa-pencil text-primary"></a>
+            <!-- /ko -->
+            <!-- ko if: options.allowClear && !options.required -->
+            <a href="#" data-bind="click: clearSelection" class="fa fa-unlink text-primary"></a>
+            <!-- /ko -->
+        </div>
+    </div>
+    <!-- /ko -->
+    
+    <!-- Multiple Entities Selected -->
+    <!-- ko if: options.allowMultiple && hasValue() -->
+    <div class="card entity-card multiple">
+        <div style="width: 100%" data-bind="foreach: selectedEntities">
+            <div class="card entity-card with-content" style="margin-bottom: 10px;">
+                <div class="status-section">
+                    <span class="fa" data-bind="css: $parent.getEntityIcon($data)"></span>
+                </div>
+                <div class="content-section">
+                    <div class="entity-header">
+                        <span class="entity-header__title" data-bind="text: $parent.getEntityDisplayName($data)"></span>
+                        <!-- ko if: $data.roleLabel -->
+                        <div class="entity-header__tags">
+                            <span class="entity-header__tags-item label label-primary" data-bind="text: $data.roleLabel"></span>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <div class="menu-section">
+                    <a href="#" data-bind="click: function() { $parent.removeEntity($data); }" class="fa fa-unlink text-primary"></a>
+                </div>
+            </div>
+        </div>
+        <div class="column-auto menu-section multi-select-menu-section" data-bind="visible: options.enabled !== false">
+            <a href="#" data-bind="click: openSearchBlade" class="fa fa-chevron-right text-primary"></a>
+        </div>
+    </div>
+    <!-- /ko -->
+    
+    <!-- Loading State -->
+    <!-- ko if: isSearching() -->
+    <div class="card entity-card">
+        <div class="status-section">
+            <span class="fa fa-2x fa-spinner fa-spin"></span>
+        </div>
+        <div class="content-section card-message">
+            <span class="card-message-text">Loading...</span>
+        </div>
+    </div>
+    <!-- /ko -->
     
 </div>

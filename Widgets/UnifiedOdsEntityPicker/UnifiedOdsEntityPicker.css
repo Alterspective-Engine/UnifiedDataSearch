@@ -1,455 +1,277 @@
-/* UnifiedOdsEntityPicker Widget - ShareDo OOB Style */
+/* UnifiedOdsEntityPicker Widget - Using ShareDo OOB Card Styles */
+
+/* Widget Container */
 .Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker.ods-entity-picker-widget {
     position: relative;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Bootstrap Horizontal Form Integration */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker.form-horizontal .form-group {
-    margin-left: -15px;
-    margin-right: -15px;
-}
-
-/* ShareDo Control Label Style */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .control-label {
-    font-size: 13px;
-    font-weight: normal;
-    color: #333;
-    padding-top: 7px;
-    text-align: right;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .required-indicator {
-    color: #dc3545;
-    margin-left: 3px;
-    font-weight: normal;
-}
-
-/* Main Content Area */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-picker-content {
-    position: relative;
-    min-height: 34px;
-}
-
-/* Empty State */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .empty-state {
-    position: relative;
-}
-
-/* Search Button Container */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-button-container {
+/* ShareDo Card Component Styles - Reusing OOB styles */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card {
     display: flex;
-    gap: 8px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    min-height: 60px;
+    transition: all 0.2s ease;
+    margin-bottom: 0;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-entity-btn {
-    padding: 6px 12px;
-    font-size: 13px;
-    font-weight: normal;
-    border-radius: 3px;
-    transition: all 0.15s ease;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card.entity-card {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+}
+
+/* Status Section - Icon/Profile */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .status-section {
+    flex: 0 0 auto;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
     background: white;
-    border: 1px solid #ccc;
-    color: #333;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .status-section .fa {
+    font-size: 2em;
+    color: #6c757d;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .status-section .fa-user,
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .status-section .fa-male {
+    color: #36b541;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .status-section .fa-building {
+    color: #337ab7;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .user-profile-image {
+    width: 100%;
+    max-height: 3.5em;
+    border-radius: 4px;
+}
+
+/* Content Section */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .content-section {
+    flex: 1;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: white;
+    min-width: 0;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .content-section.card-message {
+    padding: 15px 20px;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card-message-text {
+    font-size: 14px;
+    color: #495057;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Search Prompt */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-prompt {
+    font-size: 13px;
+    color: #6c757d;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 34px;
+    transition: color 0.2s ease;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-entity-btn:hover:not(:disabled) {
-    background: #f9fafb;
-    border-color: #9ca3af;
-    color: #111827;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-prompt:hover {
+    color: #495057;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-entity-btn:active:not(:disabled) {
-    background: #f3f4f6;
-    transform: translateY(0);
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-entity-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Inline Search Container */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .inline-search-container {
-    position: relative;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .inline-search-input {
-    width: 100%;
-    padding: 6px 12px;
-    font-size: 13px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    transition: all 0.15s ease;
-    background: white;
-    height: 34px;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .inline-search-input:focus {
-    outline: none;
-    border-color: #36b541;
-    box-shadow: 0 0 0 2px rgba(54, 181, 65, 0.1);
-    background: #fafafa;
-}
-
-/* Quick Results Dropdown */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-results-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    margin-top: 4px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-result-item {
-    padding: 10px 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.15s ease;
-    border-bottom: 1px solid #f3f4f6;
-    position: relative;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-result-item:hover {
-    background: linear-gradient(to right, rgba(54, 181, 65, 0.05), rgba(54, 181, 65, 0.02));
-    padding-left: 16px;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-result-item:hover:before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #36b541;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-result-item .entity-name {
-    flex: 1;
-    font-weight: 500;
-    color: #1f2937;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-result-footer {
-    padding: 8px 12px;
-    background: #f9fafb;
-    border-top: 1px solid #e5e7eb;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-result-footer a {
-    color: #36b541;
-    text-decoration: none;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .search-prompt i {
     font-size: 12px;
-    font-weight: 500;
-    transition: all 0.15s ease;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-result-footer a:hover {
-    color: #2a9d3a;
-    text-decoration: underline;
+/* Entity Header */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-header {
+    margin-bottom: 8px;
 }
 
-/* Selected Entity Card - ShareDo Style */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .selected-entity-card {
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    padding: 8px 10px;
-    transition: all 0.15s ease;
-    position: relative;
-    min-height: 34px;
-    display: flex;
-    align-items: center;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .selected-entity-card:hover {
-    border-color: #bbb;
-    background: #f0f0f0;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-card-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-}
-
-/* Entity Icon Wrapper */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-icon-wrapper {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-header__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #212529;
+    display: inline-block;
     margin-right: 8px;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-icon {
-    font-size: 14px;
-    color: #666;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-header__tags {
+    display: inline-block;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-icon.fa-user {
-    color: #36b541;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-icon.fa-building {
-    color: #337ab7;
-}
-
-/* Entity Details */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-details-wrapper {
-    flex: 1;
-    min-width: 0;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-name {
-    font-size: 13px;
-    font-weight: normal;
-    color: #333;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .detail-item {
-    font-size: 12px;
-    color: #666;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-right: 10px;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .detail-item i {
-    font-size: 10px;
-    color: #999;
-}
-
-/* Entity Actions */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-actions {
-    display: flex;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-actions .btn-link {
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-header__tags-item {
+    font-size: 11px;
     padding: 2px 6px;
-    color: #666;
-    transition: all 0.15s ease;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
+    margin-left: 4px;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-actions .btn-link:hover {
-    color: #36b541;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-actions .btn-link.text-danger:hover {
-    color: #dc3545;
-}
-
-/* Multiple Entities List View */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .selected-entities-list-view {
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    background: linear-gradient(to bottom, #ffffff, #fafafa);
-    padding: 6px;
-    max-height: 280px;
-    overflow-y: auto;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-list-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px;
-    border-radius: 4px;
-    transition: background 0.2s ease;
-    margin-bottom: 4px;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-list-item:hover {
-    background: #f9fafb;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-list-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-list-actions {
-    flex-shrink: 0;
-}
-
-/* Add More/New Containers */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .add-more-container,
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .add-new-container {
-    margin-top: 5px;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .add-more-container .btn,
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .add-new-container .btn {
-    font-size: 12px;
-    padding: 4px 10px;
-    height: 28px;
-}
-
-/* Source Badges and Indicators */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-badge {
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-badge.source-sharedo {
-    background: #d4f5d6;
-    color: #36b541;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-badge.source-pms {
-    background: #e0e7ff;
-    color: #3730a3;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-badge.source-matched {
-    background: #d1fae5;
-    color: #059212;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-indicator {
-    font-size: 8px;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-indicator.source-sharedo {
-    color: #36b541;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-indicator.source-pms {
-    color: #3730a3;
-}
-
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .source-indicator.source-matched {
-    color: #059212;
-}
-
-/* Entity Reference */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-reference {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #e5e7eb;
+/* Entity Content Blocks */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-content {
     font-size: 13px;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-reference label {
-    font-weight: 600;
-    color: #6b7280;
-    margin-right: 4px;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-content-block {
+    margin-bottom: 8px;
 }
 
-/* Loading Overlay */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.95);
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-content-block__title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-content-block__content {
+    font-size: 13px;
+    color: #495057;
+    margin: 0;
+}
+
+/* Menu Section */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .menu-section {
+    flex: 0 0 auto;
+    padding: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    z-index: 100;
+    gap: 12px;
+    min-width: 40px;
+    background: white;
+    border-left: 1px solid #e5e7eb;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .loading-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #667eea;
-    font-weight: 500;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .menu-section a {
+    color: #36b541;
+    font-size: 16px;
+    text-decoration: none;
+    transition: all 0.2s ease;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .loading-content i {
-    font-size: 18px;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .menu-section a:hover {
+    color: #2a9d3a;
+    transform: scale(1.1);
 }
 
-/* Validation and Help Text */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .validation-message {
-    margin-top: 4px;
-    font-size: 13px;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .menu-section a.fa-unlink {
+    color: #dc3545;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .help-text {
-    margin-top: 4px;
-    font-size: 12px;
-    color: #6b7280;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .menu-section a.fa-unlink:hover {
+    color: #c82333;
 }
 
-/* Disabled State */
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-picker-content[disabled],
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker input:disabled,
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+/* Multiple Selection */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card.entity-card.multiple {
+    flex-direction: row;
+    padding: 10px;
 }
 
-/* Responsive Adjustments */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .multi-select-menu-section {
+    border-left: none;
+    background: transparent;
+}
+
+/* Card States */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card.entity-card:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card.entity-card.with-content {
+    background: white;
+}
+
+/* Loading State */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Row/Column Layout */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .row {
+    margin-left: -15px;
+    margin-right: -15px;
+}
+
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .col-lg-12 {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-    .Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-card-content {
+    .Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card.entity-card {
         flex-direction: column;
-        text-align: center;
     }
     
-    .Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-secondary-info {
-        justify-content: center;
-    }
-    
-    .Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .entity-actions {
-        justify-content: center;
-        width: 100%;
-        margin-top: 8px;
+    .Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .menu-section {
+        border-left: none;
+        border-top: 1px solid #e5e7eb;
+        flex-direction: row;
+        padding: 10px;
     }
 }
 
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Override any conflicting styles */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker p {
+    margin: 0;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .quick-results-dropdown {
-    animation: fadeIn 0.2s ease;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .label {
+    display: inline-block;
+    padding: .2em .6em .3em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .25em;
 }
 
-.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .selected-entity-card {
-    animation: fadeIn 0.3s ease;
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .label-primary {
+    background-color: #337ab7;
+}
+
+/* Alignment fix for empty state */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card.entity-card .content-section.card-message {
+    flex: 1;
+}
+
+/* Fix icon sizes */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .status-section .fa-2x {
+    font-size: 2em;
+}
+
+/* Text primary color */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .text-primary {
+    color: #337ab7;
+}
+
+/* Hide focus outline on card interaction */
+.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker .card:focus {
+    outline: none;
 }

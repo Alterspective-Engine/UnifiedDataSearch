@@ -34,7 +34,7 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker = function(element, configu
         // Search blade configuration
         searchMode: "unified", // "unified", "odsOnly", "pmsOnly"
         useMockPms: true,
-        useMockOds: false,  // Changed to false - use real ODS when available
+        useMockOds: true,  // Use mock for both ODS and PMS by default
         pmsTimeout: 5000,
         
         // Participant configuration (when used in work item context)
@@ -103,7 +103,8 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker = function(element, configu
     self.hasValue = ko.observable(false);
     
     // Inline search observables
-    self.inlineSearchQuery = ko.observable("");
+    self.isSearchActive = ko.observable(false);
+    self.inlineSearchQuery = ko.observable("").extend({ rateLimit: 500 });
     self.quickSearchResults = ko.observableArray([]);
     self.showQuickResults = ko.observable(false);
     self.isPerformingQuickSearch = ko.observable(false);
@@ -484,6 +485,43 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.getSourceBadge = 
 };
 
 /**
+ * Activate inline search mode
+ */
+Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.activateInlineSearch = function() {
+    var self = this;
+    console.log("Activating inline search");
+    self.isSearchActive(true);
+    self.inlineSearchQuery("");
+    self.quickSearchResults([]);
+    console.log("Inline search activated, isSearchActive:", self.isSearchActive());
+};
+
+/**
+ * Handle search blur event
+ */
+Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.handleSearchBlur = function() {
+    var self = this;
+    // Delay to allow click events on results
+    setTimeout(function() {
+        if (self.isSearchActive() && !self._preventBlur) {
+            self.isSearchActive(false);
+            self.inlineSearchQuery("");
+            self.quickSearchResults([]);
+        }
+        self._preventBlur = false;
+    }, 200);
+};
+
+/**
+ * Prevent blur when clicking on results
+ */
+Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.preventBlur = function() {
+    var self = this;
+    self._preventBlur = true;
+    return true; // Allow event to continue
+};
+
+/**
  * Handle inline search input
  */
 Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.handleInlineSearch = function(data, event) {
@@ -537,18 +575,36 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
     var self = this;
     var query = self.inlineSearchQuery();
     
+    console.log("executeInlineSearch called with query:", query);
+    console.log("Options:", self.options);
+    
     if (!query || query.length < self.options.minSearchLength) {
+        console.log("Query too short, minLength:", self.options.minSearchLength);
         return;
     }
     
     self.isPerformingQuickSearch(true);
+    console.log("Starting search...");
     
     // Build search parameters
     var searchPromises = [];
     
+    console.log("Search mode:", self.options.searchMode);
+    console.log("Mock PMS Service available:", !!Alt.UnifiedDataSearch.Services.mockPmsService);
+    
     // Search ODS if enabled
     if (self.options.searchMode === "unified" || self.options.searchMode === "odsOnly") {
-        if (!self.options.useMockOds && window.$ajax) {
+        // Use mock ODS if configured, otherwise use real API
+        if (self.options.useMockOds && Alt.UnifiedDataSearch.Services.mockPmsService) {
+            console.log("Creating ODS mock search promise");
+            // Use mock service for ODS too (reuse the mock service)
+            var odsType = self.options.entityTypes.indexOf("person") > -1 ? "persons" : "organisations";
+            var odsMockPromise = Alt.UnifiedDataSearch.Services.mockPmsService.search(odsType, query, 0);
+            searchPromises.push(odsMockPromise);
+            console.log("ODS mock promise created");
+        } else if (window.$ajax) {
+            console.log("Creating real ODS API promise");
+            // Use real ODS API
             var odsPromise = $ajax.get("/api/ods/search", {
                 q: query,
                 page: 0,
@@ -562,39 +618,107 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
     // Search PMS if enabled
     if (self.options.searchMode === "unified" || self.options.searchMode === "pmsOnly") {
         if (self.options.useMockPms && Alt.UnifiedDataSearch.Services.mockPmsService) {
+            console.log("Creating PMS mock search promise");
             var type = self.options.entityTypes.indexOf("person") > -1 ? "persons" : "organisations";
             var pmsPromise = Alt.UnifiedDataSearch.Services.mockPmsService.search(type, query, 0);
             searchPromises.push(pmsPromise);
+            console.log("PMS mock promise created");
+        } else if (!self.options.useMockPms && window.$ajax) {
+            // Try to use real PMS API if available
+            var pmsApiPromise = $ajax.get("/api/ods/externalSearch/providers/pms/" + type, {
+                q: query,
+                page: 0
+            }).fail(function() {
+                // Silently fail if PMS API not available
+                return { results: [] };
+            });
+            searchPromises.push(pmsApiPromise);
         }
+    }
+    
+    console.log("Total search promises created:", searchPromises.length);
+    
+    if (searchPromises.length === 0) {
+        console.warn("No search promises created!");
+        self.isPerformingQuickSearch(false);
+        self.quickSearchResults([]);
+        return;
     }
     
     // Wait for all searches to complete
     $.when.apply($, searchPromises).done(function() {
+        console.log("Search promises resolved, arguments:", arguments);
         var allResults = [];
         
-        // Process each result set
-        for (var i = 0; i < arguments.length; i++) {
-            var response = arguments[i];
-            if (response && response[0]) {
-                var data = response[0];
+        // Process each result set based on number of promises
+        if (searchPromises.length === 1) {
+            // Single promise - arguments is the direct result
+            var data = arguments[0];
+            if (data) {
                 if (data.results) {
                     allResults = allResults.concat(data.results);
                 } else if (Array.isArray(data)) {
                     allResults = allResults.concat(data);
                 }
             }
+        } else if (searchPromises.length > 1) {
+            // Multiple promises - arguments is an array of results
+            for (var i = 0; i < arguments.length; i++) {
+                var response = arguments[i];
+                var data = response;
+                
+                // Handle jQuery ajax response format [data, status, xhr]
+                if (Array.isArray(response) && response.length > 0) {
+                    data = response[0];
+                }
+                
+                if (data) {
+                    if (data.results) {
+                        allResults = allResults.concat(data.results);
+                    } else if (Array.isArray(data)) {
+                        allResults = allResults.concat(data);
+                    }
+                }
+            }
+        }
+        
+        // Use result merger if available to merge and deduplicate
+        if (Alt.UnifiedDataSearch.Services.resultMergerService && searchPromises.length > 1) {
+            // Split results by source for merging
+            var odsResults = { results: [] };
+            var pmsResults = { results: [] };
+            
+            // For mock data, mark sources
+            allResults.forEach(function(item) {
+                if (!item.source) {
+                    // Guess source based on ID format
+                    if (item.id && item.id.indexOf("PMS") > -1) {
+                        item.source = "pms";
+                        pmsResults.results.push(item);
+                    } else {
+                        item.source = "ods";
+                        odsResults.results.push(item);
+                    }
+                }
+            });
+            
+            // Merge using the service
+            allResults = Alt.UnifiedDataSearch.Services.resultMergerService.mergeResults(odsResults, pmsResults);
         }
         
         // Limit results
         allResults = allResults.slice(0, self.options.maxQuickResults);
         
+        console.log("Final results to display:", allResults);
+        
         // Process and display results
         self.quickSearchResults(allResults);
-        self.showQuickResults(allResults.length > 0);
         self.isPerformingQuickSearch(false);
-    }).fail(function() {
+        console.log("Search complete, results set");
+    }).fail(function(error) {
+        console.error("Search failed:", error);
         self.isPerformingQuickSearch(false);
-        self.showQuickResults(false);
+        self.quickSearchResults([]);
     });
 };
 
@@ -604,7 +728,11 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
 Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.selectQuickResult = function(entity) {
     var self = this;
     
+    // Prevent the blur handler from clearing
+    self._preventBlur = true;
+    
     // Clear inline search
+    self.isSearchActive(false);
     self.inlineSearchQuery("");
     self.showQuickResults(false);
     self.quickSearchResults([]);
@@ -623,6 +751,11 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.selectQuickResult
     } else {
         self.selectedEntity(entity);
     }
+    
+    // Reset prevent blur flag after a delay
+    setTimeout(function() {
+        self._preventBlur = false;
+    }, 300);
 };
 
 /**
@@ -769,6 +902,18 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.loadAndBind = fun
     if (self.options.initialEntityId) {
         self.loadEntityById(self.options.initialEntityId);
     }
+    
+    // Subscribe to inline search query changes
+    self.inlineSearchQuery.subscribe(function(newValue) {
+        console.log("Inline search query changed:", newValue, "isSearchActive:", self.isSearchActive());
+        if (self.isSearchActive() && newValue && newValue.length >= self.options.minSearchLength) {
+            console.log("Triggering executeInlineSearch");
+            self.executeInlineSearch();
+        } else {
+            console.log("Clearing results - query too short or search not active");
+            self.quickSearchResults([]);
+        }
+    });
     
     // Subscribe to refresh events if in participant mode
     if (self.options.mode === "addParticipant" && self.options.sharedoId) {
@@ -938,13 +1083,34 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.openUnifiedSearch
     
     // Open the blade using ShareDo's UI stack
     if (window.$ui && window.$ui.stacks && window.$ui.stacks.openPanel) {
-        $ui.stacks.openPanel(self.options.bladeName, bladeConfig, {
+        var panelInstance = $ui.stacks.openPanel(self.options.bladeName, bladeConfig, {
             width: self.options.bladeWidth,
             closing: function(result) {
-                if (result && result.selectedEntities) {
-                    // Update our selection with the results from the blade
+                console.log("Blade closing with result:", result);
+                
+                // Handle the result - blade returns selectedEntity (singular)
+                if (result && result.selectedEntity) {
+                    if (self.options.allowMultiple) {
+                        // Add to existing selection
+                        var current = self.selectedEntities();
+                        var exists = current.some(function(e) {
+                            return (e.odsId || e.id) === (result.selectedEntity.odsId || result.selectedEntity.id);
+                        });
+                        
+                        if (!exists) {
+                            current.push(result.selectedEntity);
+                            self.selectedEntities(current);
+                        }
+                    } else {
+                        // Replace selection
+                        self.selectedEntity(result.selectedEntity);
+                    }
+                } else if (result && result.selectedEntities) {
+                    // Also handle plural form for backward compatibility
                     self.selectedEntities(result.selectedEntities);
                 }
+                
+                self.isSearching(false);
             }
         });
     } else {

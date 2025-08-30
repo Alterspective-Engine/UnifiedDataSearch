@@ -1,5 +1,26 @@
 # CLAUDE.md - UnifiedDataSearch Implementation Guide
 
+## 📚 NEW: Modular Documentation Structure
+
+This documentation has been **reorganized into smaller, focused files** in the `docs/` directory for easier AI assistant navigation and reference.
+
+### How to Use This Documentation
+
+1. **For AI Assistants**: Reference specific topic files in `docs/` as needed rather than loading this entire file
+2. **Quick Start**: Go to **[docs/02-quick-setup.md](docs/02-quick-setup.md)** for immediate setup
+3. **Browse Topics**: See **[docs/README.md](docs/README.md)** for the complete documentation index
+
+### Key Documentation Files
+
+| Topic | File | Description |
+|-------|------|-------------|
+| **Overview** | [01-overview.md](docs/01-overview.md) | Project overview and requirements |
+| **API Patterns** | [03-api-patterns.md](docs/03-api-patterns.md) | Critical API usage patterns |
+| **Contact Details** | [05-contact-details.md](docs/05-contact-details.md) | Contact type requirements |
+| **Testing** | [13-testing.md](docs/13-testing.md) | Testing procedures |
+| **Troubleshooting** | [14-troubleshooting.md](docs/14-troubleshooting.md) | Common issues and solutions |
+| **Deployment** | [16-deployment.md](docs/16-deployment.md) | Deployment checklist |
+
 ## Overview
 This guide provides complete instructions for implementing the UnifiedDataSearch module - a frontend-only solution for searching across ShareDo ODS and external PMS systems with NO backend changes required.
 
@@ -19,9 +40,12 @@ This guide provides complete instructions for implementing the UnifiedDataSearch
 - Use `$ajax` or `$ajaxMutex` for API calls
 - Follow existing file path patterns with `/_ideFiles/`
 
-## ⚠️ CRITICAL API USAGE PATTERNS - MUST READ
+## ⚠️ CRITICAL API USAGE PATTERNS
+
+**[→ See detailed API patterns documentation](docs/03-api-patterns.md)**
 
 ### Creating ODS Entities via API
+**[→ Complete entity creation guide](docs/04-ods-entity-creation.md)**
 
 #### 1. Correct API Endpoints
 ```javascript
@@ -35,6 +59,8 @@ var orgEndpoint = "/api/aspects/ods/organisations/";    // Note: plural "organis
 ```
 
 #### 2. Contact Details Format - CRITICAL
+
+**[→ Complete contact details guide](docs/05-contact-details.md)**
 
 **⚠️ COMMON ERROR**: "Invalid contact detail type specified for new contact details"
 
@@ -208,6 +234,8 @@ $ajax.post("/api/aspects/ods/people/", personPayload)
 
 ### ResultMergerService - Reference Field Matching
 
+**[→ Complete ResultMergerService documentation](docs/06-result-merger.md)**
+
 The ResultMergerService checks for matches in TWO ways:
 
 1. **Data matching** - Matches by name, email, DOB, ABN, etc.
@@ -267,6 +295,9 @@ $ui.stacks.openPanel("Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch", {
 ```
 
 ## Widget Integration with ShareDo OdsEntityPicker Component
+
+**[→ Complete widget integration guide](docs/08-widget-integration.md)**  
+**[→ Display modes comparison](docs/09-display-modes.md)**
 
 ### Research Findings
 
@@ -354,6 +385,10 @@ Use **Component Mode** only when:
 - Standard entity viewing (click to open) is acceptable
 
 ## Implementation Instructions
+
+**[→ Complete directory structure guide](docs/10-directory-structure.md)**  
+**[→ Blade implementation details](docs/11-blade-implementation.md)**  
+**[→ Event handling guide](docs/12-event-handling.md)**
 
 ### Step 1: Create Directory Structure
 
@@ -1383,6 +1418,9 @@ Create comprehensive styles as shown in the specification. Key styles include:
 
 ## Testing Instructions
 
+**[→ Complete testing guide](docs/13-testing.md)**  
+**[→ Troubleshooting guide](docs/14-troubleshooting.md)**
+
 ### 1. Test Mock PMS Service
 ```javascript
 // In browser console
@@ -1433,6 +1471,8 @@ $ui.events.subscribe("Alt.UnifiedDataSearch.ParticipantAdded", function(data) {
 
 ## Configuration Options
 
+**[→ Complete configuration guide](docs/15-configuration.md)**
+
 ### Blade Configuration
 ```javascript
 {
@@ -1451,6 +1491,8 @@ $ui.events.subscribe("Alt.UnifiedDataSearch.ParticipantAdded", function(data) {
 - `alt.ods.unified.search.conflictResolution` - How to handle conflicts
 
 ## Deployment Checklist
+
+**[→ Complete deployment checklist](docs/16-deployment.md)**
 
 ✅ Create all directory structure  
 ✅ Implement namespace helper  

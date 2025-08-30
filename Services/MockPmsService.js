@@ -521,5 +521,7 @@ Alt.UnifiedDataSearch.Services.MockPmsService = function() {
     // Don't auto-initialize - let it load on first search
 };
 
-// Create singleton instance
+// Create singleton instance and initialize
 Alt.UnifiedDataSearch.Services.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
+// Initialize data immediately
+Alt.UnifiedDataSearch.Services.mockPmsService.initializeMockData();
