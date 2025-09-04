@@ -504,144 +504,33 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.executeSearch = funct
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchOds = function(query, page) {
     var self = this;
     
-    // Build search payload for ShareDo ODS _search endpoint
-    var payload = {
-        startPage: (page || 0) + 1,  // ShareDo uses 1-based pages
-        endPage: (page || 0) + 1,
-        rowsPerPage: self.options.rowsPerPage || 20,
-        searchString: query || "",
-        odsEntityTypes: [],
-        availability: {
-            isAvailable: null,
-            isOutOfOffice: null,
-            isNotAvailable: null
-        },
-        location: {
-            postcode: null,
-            range: 10
-        },
-        connection: {
-            systemName: null,
-            label: null,
-            otherOdsIds: []
-        },
-        competencies: [],
-        teams: [],
-        roles: [],
-        odsTypes: [],
-        wallManagement: false
-    };
+    console.log("Blade.searchOds called with query:", query, "page:", page);
     
-    // Add entity type filter
-    if (self.searchEntityType() === "person") {
-        payload.odsEntityTypes = ["person"];
-    } else if (self.searchEntityType() === "organisation") {
-        payload.odsEntityTypes = ["organisation"];
-    } else {
-        // For "all", include both types
-        payload.odsEntityTypes = ["person", "organisation"];
+    // Ensure SearchApiService is available
+    if (!Alt.UnifiedDataSearch.Services.searchApiService) {
+        console.error("SearchApiService not available for ODS search");
+        return $.Deferred().resolve({
+            success: false,
+            results: [],
+            totalResults: 0,
+            error: "SearchApiService not available"
+        }).promise();
     }
     
-    // Create a deferred to handle fallback
-    var deferred = $.Deferred();
+    // Determine entity types to search
+    var entityTypes = [];
+    if (self.searchEntityType() === "person") {
+        entityTypes = ["person"];
+    } else if (self.searchEntityType() === "organisation") {
+        entityTypes = ["organisation"];
+    } else {
+        // For "all", include both types
+        entityTypes = ["person", "organisation"];
+    }
     
-    // Try real API first using POST to _search endpoint
-    var apiCall = window.$ajax && window.$ajax.post ? 
-        $ajax.post("/api/ods/_search", payload) :
-        $.ajax({
-            url: "/api/ods/_search",
-            method: "POST",
-            data: JSON.stringify(payload),
-            contentType: "application/json",
-            dataType: "json"
-        });
-    
-    apiCall
-        .done(function(data) {
-            console.log("ODS API raw response:", data);
-            
-            // Parse the ShareDo response format
-            var results = [];
-            
-            // ShareDo returns data in rows property with result as JSON string
-            if (data.rows && Array.isArray(data.rows)) {
-                data.rows.forEach(function(row) {
-                    try {
-                        // Parse the JSON string in the result property
-                        var entity = JSON.parse(row.result);
-                        // Add the ID and entity type from the row
-                        entity.id = entity.id || row.id;
-                        entity.odsId = entity.id || row.id;
-                        entity.odsEntityType = entity.odsEntityType || row.odsEntityType;
-                        
-                        // Extract contact details if they're in aspectData
-                        if (entity.aspectData && entity.aspectData.ContactDetails) {
-                            var contacts = entity.aspectData.ContactDetails;
-                            // Find primary email
-                            var emailContact = contacts.find(function(c) {
-                                return c.contactTypeSystemName === "email" && c.isPrimary;
-                            }) || contacts.find(function(c) {
-                                return c.contactTypeSystemName === "email";
-                            });
-                            if (emailContact) {
-                                entity.email = emailContact.contactValue;
-                            }
-                            
-                            // Find primary phone
-                            var phoneContact = contacts.find(function(c) {
-                                return (c.contactTypeSystemName === "mobile" || c.contactTypeSystemName === "direct-line") && c.isPrimary;
-                            }) || contacts.find(function(c) {
-                                return c.contactTypeSystemName === "mobile";
-                            }) || contacts.find(function(c) {
-                                return c.contactTypeSystemName === "direct-line";
-                            });
-                            if (phoneContact) {
-                                entity.phone = phoneContact.contactValue;
-                            }
-                        }
-                        
-                        // Extract location/address if available
-                        if (entity.locations && entity.locations.length > 0) {
-                            var location = entity.locations[0];
-                            entity.address = location.addressLine1;
-                            entity.suburb = location.town;
-                            entity.postcode = location.postCode;
-                            entity.state = location.county;
-                            entity.country = location.country;
-                        }
-                        
-                        results.push(entity);
-                    } catch(e) {
-                        console.error("Failed to parse ODS result row:", e, row);
-                    }
-                });
-            } else if (data.results) {
-                // Handle if results are already parsed
-                results = data.results;
-            } else if (Array.isArray(data)) {
-                // Handle if data is directly an array
-                results = data;
-            }
-            
-            // Transform the response to match our expected format
-            var transformed = {
-                success: true,
-                results: results,
-                totalResults: data.totalRows || data.totalCount || results.length,
-                page: page || 0,
-                hasMore: data.totalPages ? (data.endPage < data.totalPages) : false,
-                totalPages: data.totalPages || 1
-            };
-            
-            console.log("ODS API transformed response:", transformed);
-            deferred.resolve(transformed);
-        })
-        .fail(function(error) {
-            console.error("ODS API failed:", error);
-            deferred.reject(error);
-        });
-    
-    return deferred.promise();
+    // Use the centralized SearchApiService
+    return Alt.UnifiedDataSearch.Services.searchApiService
+        .searchOds(query, entityTypes, self.options.rowsPerPage, page);
 };
 
 

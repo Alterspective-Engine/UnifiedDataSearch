@@ -12,7 +12,18 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\docs/**)",
-      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Services/**)"
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Services/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch/**)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
