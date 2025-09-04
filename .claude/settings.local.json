@@ -11,7 +11,8 @@
       "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\docs/**)"
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\docs/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Services/**)"
     ],
     "deny": [],
     "ask": []
