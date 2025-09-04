@@ -32,9 +32,7 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker = function(element, configu
         entityTypes: ["person", "organisation"], // What types to search
         
         // Search blade configuration
-        searchMode: "unified", // "unified", "odsOnly", "pmsOnly"
-        useMockPms: true,  // Use mock for PMS data
-        useMockOds: false,  // Use real ShareDo API for ODS data
+        searchMode: "odsOnly", // "unified", "odsOnly", "pmsOnly" - default to ODS only since no PMS integration
         pmsTimeout: 5000,
         
         // Participant configuration (when used in work item context)
@@ -384,8 +382,6 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.openSearchBlade =
         mode: self.options.mode || "select", // Use configured mode, default to "select" for backward compatibility
         entityTypes: self.options.entityTypes,
         searchMode: self.options.searchMode,
-        useMockPms: true,  // Always use mock for PMS
-        useMockOds: false,  // Always use real ShareDo API for ODS
         pmsTimeout: self.options.pmsTimeout,
         allowMultiple: self.options.allowMultiple,
         sharedoId: self.options.sharedoId,
@@ -774,7 +770,6 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
     var searchPromises = [];
     
     console.log("Search mode:", self.options.searchMode);
-    console.log("Mock PMS Service available:", !!Alt.UnifiedDataSearch.Services.mockPmsService);
     
     // Search ODS if enabled (EXACTLY like blade)
     if (self.options.searchMode === "unified" || self.options.searchMode === "odsOnly") {
@@ -916,15 +911,8 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
                 odsDeferred.resolve(transformed);
             })
             .fail(function(error) {
-                console.warn("ODS API failed, falling back to mock data:", error);
-                // Fallback to mock data (EXACTLY like blade)
-                self.getMockOdsData(query)
-                    .done(function(mockData) {
-                        odsDeferred.resolve(mockData);
-                    })
-                    .fail(function(mockError) {
-                        odsDeferred.reject(mockError);
-                    });
+                console.error("ODS API failed:", error);
+                odsDeferred.reject(error);
             });
         
         searchPromises.push(odsDeferred.promise());
@@ -935,19 +923,7 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
     if (self.options.searchMode === "unified" || self.options.searchMode === "pmsOnly") {
         console.log("Making PMS search with query:", query);
         
-        // Ensure mock service is available (EXACTLY like blade)
-        if (!self.mockPmsService) {
-            console.error("Mock PMS service not initialized");
-            // Try to get it from the global namespace
-            self.mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
-            
-            // If still not available, try to create it
-            if (!self.mockPmsService && Alt.UnifiedDataSearch.Services.MockPmsService) {
-                console.warn("Creating mock PMS service on demand");
-                self.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
-                Alt.UnifiedDataSearch.Services.mockPmsService = self.mockPmsService;
-            }
-        }
+        // PMS integration not available
         
         var entityTypes = self.options.entityTypes || ["person", "organisation"];
         
@@ -1579,8 +1555,6 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.openUnifiedSearch
     var bladeConfig = {
         searchMode: self.options.searchMode,
         entityTypes: self.options.entityTypes,
-        useMockPms: true,  // Always use mock for PMS
-        useMockOds: false,  // Always use real ShareDo API for ODS
         allowMultiple: self.options.allowMultiple,
         currentSelection: self.selectedEntities(),
         mode: self.options.mode
@@ -1918,166 +1892,17 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.getReturnValue = 
 };
 
 /**
- * Helper method to search specific PMS entity type (EXACTLY like blade)
+ * Helper method to search specific PMS entity type - No PMS integration available
  */
 Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.searchPmsType = function(type, query, page) {
-    var self = this;
-    
-    // Ensure mock service is available
-    if (!self.mockPmsService) {
-        console.error("Mock PMS service not initialized");
-        // Try to get it from the global namespace
-        self.mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
-        
-        // If still not available, try to create it
-        if (!self.mockPmsService && Alt.UnifiedDataSearch.Services.MockPmsService) {
-            console.warn("Creating mock PMS service on demand");
-            self.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
-            Alt.UnifiedDataSearch.Services.mockPmsService = self.mockPmsService;
-        }
-    }
-    
-    // Check if service is available and has search method
-    if (self.mockPmsService && typeof self.mockPmsService.search === 'function') {
-        return self.mockPmsService.search(type, query, page);
-    } else {
-        console.error("Mock PMS service search method not available");
-        // Return empty results as fallback
-        return $.Deferred().resolve({ 
-            success: true, 
-            results: [], 
-            totalResults: 0,
-            page: page || 0,
-            hasMore: false 
-        }).promise();
-    }
+    // No PMS integration - return empty results
+    console.log("PMS search requested but no PMS integration available");
+    return $.Deferred().resolve({ 
+        success: true, 
+        results: [], 
+        totalResults: 0,
+        page: page || 0,
+        hasMore: false 
+    }).promise();
 };
 
-/**
- * Get mock ODS data (EXACTLY like blade - fallback when real API fails)
- */
-Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.getMockOdsData = function(query, page) {
-    var self = this;
-    var deferred = $.Deferred();
-    
-    // Mock ODS data
-    var mockOdsPersons = [
-        {
-            id: "ODS-P001",
-            odsId: "ODS-P001",
-            odsType: "person",
-            firstName: "Sarah",
-            lastName: "Anderson",
-            email: "sarah.anderson@lawfirm.com",
-            phone: "0412111222",
-            dateOfBirth: "1982-04-15",
-            address: "100 Legal St",
-            suburb: "Sydney",
-            postcode: "2000"
-        },
-        {
-            id: "ODS-P002",
-            odsId: "ODS-P002",
-            odsType: "person",
-            firstName: "David",
-            lastName: "Chen",
-            email: "david.chen@example.com",
-            phone: "0423333444",
-            address: "200 Court Ave",
-            suburb: "Melbourne",
-            postcode: "3000"
-        },
-        {
-            id: "ODS-P003",
-            odsId: "ODS-P003",
-            odsType: "person",
-            firstName: "Maria",
-            lastName: "Garcia",
-            email: "m.garcia@business.com",
-            phone: "0434444555"
-        },
-        {
-            id: "ODS-P004",
-            odsId: "ODS-P004",
-            odsType: "person",
-            firstName: "Igor",
-            lastName: "Jericevich",
-            email: "igor@alterspective.com",
-            phone: "0445555666",
-            address: "300 Tech Park",
-            suburb: "Brisbane",
-            postcode: "4000"
-        }
-    ];
-    
-    var mockOdsOrganisations = [
-        {
-            id: "ODS-O001",
-            odsId: "ODS-O001",
-            odsType: "organisation",
-            name: "Legal Solutions Pty Ltd",
-            organisationName: "Legal Solutions Pty Ltd",
-            tradingName: "Legal Solutions",
-            abn: "11223344556",
-            email: "info@legalsolutions.com.au",
-            phone: "0298887777"
-        },
-        {
-            id: "ODS-O002",
-            odsId: "ODS-O002",
-            odsType: "organisation",
-            name: "Corporate Advisory Services",
-            organisationName: "Corporate Advisory Services",
-            abn: "22334455667",
-            email: "contact@cas.com.au"
-        }
-    ];
-    
-    // Simulate async delay
-    setTimeout(function() {
-        var results = [];
-        var searchTerm = (query || "").toLowerCase();
-        
-        // Determine what to search based on entity types
-        var entityTypes = self.options.entityTypes || ["person", "organisation"];
-        var searchPersons = entityTypes.indexOf("person") > -1;
-        var searchOrgs = entityTypes.indexOf("organisation") > -1;
-        
-        // Search persons
-        if (searchPersons) {
-            mockOdsPersons.forEach(function(person) {
-                if (!searchTerm || 
-                    (person.firstName && person.firstName.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (person.lastName && person.lastName.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (person.email && person.email.toLowerCase().indexOf(searchTerm) > -1)) {
-                    results.push(person);
-                }
-            });
-        }
-        
-        // Search organisations
-        if (searchOrgs) {
-            mockOdsOrganisations.forEach(function(org) {
-                if (!searchTerm ||
-                    (org.name && org.name.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (org.tradingName && org.tradingName.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (org.abn && org.abn.indexOf(searchTerm) > -1)) {
-                    results.push(org);
-                }
-            });
-        }
-        
-        // Limit results
-        var limitedResults = results.slice(0, self.options.maxQuickResults || 10);
-        
-        deferred.resolve({
-            success: true,
-            results: limitedResults,
-            totalResults: results.length,
-            page: page || 0,
-            hasMore: results.length > limitedResults.length
-        });
-    }, 200); // Simulate network delay
-    
-    return deferred.promise();
-};

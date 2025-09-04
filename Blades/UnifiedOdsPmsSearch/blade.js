@@ -59,7 +59,6 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch = function(element, configurati
         addNewParticipantsToSharedoId: null,
         mode: "auto", // "select" (just returns entity) or "auto" (auto-imports PMS to ODS)
         entityTypes: ["person", "organisation"],
-        useMockPms: true, // Always use mock for PMS (no real PMS integration yet)
         pmsTimeout: 5000,
         allowAddNew: true,
         tryAutoAddParticipant: false,
@@ -187,9 +186,6 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.buildServices = funct
     
     // Initialize shared search service with configuration
     self.searchService = new Alt.UnifiedDataSearch.Services.UnifiedSearchService({
-        useMockPms: self.options.useMockPms,
-        useMockOds: self.options.useMockOds,
-        pmsProvider: self.options.pmsProvider || "pms",
         pmsTimeout: self.options.pmsTimeout || 5000,
         labels: self.options.labels || {
             sharedo: "ShareDo",
@@ -202,16 +198,6 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.buildServices = funct
     self.importService = Alt.UnifiedDataSearch.Services.odsImportService;
     
     // Get other service instances for backward compatibility
-    // Ensure mock service is initialized
-    if (!Alt.UnifiedDataSearch.Services.mockPmsService) {
-        console.warn("MockPmsService not found, creating new instance");
-        if (Alt.UnifiedDataSearch.Services.MockPmsService) {
-            Alt.UnifiedDataSearch.Services.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
-        } else {
-            console.error("MockPmsService class not available");
-        }
-    }
-    self.mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
     
     // Ensure result merger service is initialized
     if (!Alt.UnifiedDataSearch.Services.resultMergerService) {
@@ -271,7 +257,6 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.onDestroy = function(
     }
     
     // Clean up any service references
-    self.mockPmsService = null;
     self.resultMergerService = null;
     self.conflictDetectorService = null;
     self.addParticipantService = null;
@@ -652,147 +637,13 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchOds = function(
             deferred.resolve(transformed);
         })
         .fail(function(error) {
-            console.warn("ODS API failed, falling back to mock data:", error);
-            // Fallback to mock data
-            self.getMockOdsData(query, page)
-                .done(function(mockData) {
-                    deferred.resolve(mockData);
-                })
-                .fail(function(mockError) {
-                    deferred.reject(mockError);
-                });
+            console.error("ODS API failed:", error);
+            deferred.reject(error);
         });
     
     return deferred.promise();
 };
 
-// Get mock ODS data
-Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.getMockOdsData = function(query, page) {
-    var self = this;
-    var deferred = $.Deferred();
-    
-    // Mock ODS data
-    var mockOdsPersons = [
-        {
-            id: "ODS-P001",
-            odsId: "ODS-P001",
-            odsType: "person",
-            firstName: "Sarah",
-            lastName: "Anderson",
-            email: "sarah.anderson@lawfirm.com",
-            phone: "0412111222",
-            dateOfBirth: "1982-04-15",
-            address: "100 Legal St",
-            suburb: "Sydney",
-            postcode: "2000"
-        },
-        {
-            id: "ODS-P002",
-            odsId: "ODS-P002",
-            odsType: "person",
-            firstName: "David",
-            lastName: "Chen",
-            email: "david.chen@example.com",
-            phone: "0423333444",
-            address: "200 Court Ave",
-            suburb: "Melbourne",
-            postcode: "3000"
-        },
-        {
-            id: "ODS-P003",
-            odsId: "ODS-P003",
-            odsType: "person",
-            firstName: "Maria",
-            lastName: "Garcia",
-            email: "m.garcia@business.com",
-            phone: "0434444555"
-        },
-        {
-            id: "ODS-P004",
-            odsId: "ODS-P004",
-            odsType: "person",
-            firstName: "Igor",
-            lastName: "Jericevich",
-            email: "igor@alterspective.com",
-            phone: "0445555666",
-            address: "300 Tech Park",
-            suburb: "Brisbane",
-            postcode: "4000"
-        }
-    ];
-    
-    var mockOdsOrganisations = [
-        {
-            id: "ODS-O001",
-            odsId: "ODS-O001",
-            odsType: "organisation",
-            name: "Legal Solutions Pty Ltd",
-            organisationName: "Legal Solutions Pty Ltd",
-            tradingName: "Legal Solutions",
-            abn: "11223344556",
-            email: "info@legalsolutions.com.au",
-            phone: "0298887777"
-        },
-        {
-            id: "ODS-O002",
-            odsId: "ODS-O002",
-            odsType: "organisation",
-            name: "Corporate Advisory Services",
-            organisationName: "Corporate Advisory Services",
-            abn: "22334455667",
-            email: "contact@cas.com.au"
-        }
-    ];
-    
-    // Simulate async delay
-    setTimeout(function() {
-        var results = [];
-        var searchTerm = (query || "").toLowerCase();
-        
-        // Determine what to search
-        var searchPersons = self.searchEntityType() === "all" || self.searchEntityType() === "person";
-        var searchOrgs = self.searchEntityType() === "all" || self.searchEntityType() === "organisation";
-        
-        // Search persons
-        if (searchPersons) {
-            mockOdsPersons.forEach(function(person) {
-                if (!searchTerm || 
-                    (person.firstName && person.firstName.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (person.lastName && person.lastName.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (person.email && person.email.toLowerCase().indexOf(searchTerm) > -1)) {
-                    results.push(person);
-                }
-            });
-        }
-        
-        // Search organisations
-        if (searchOrgs) {
-            mockOdsOrganisations.forEach(function(org) {
-                if (!searchTerm ||
-                    (org.name && org.name.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (org.tradingName && org.tradingName.toLowerCase().indexOf(searchTerm) > -1) ||
-                    (org.abn && org.abn.indexOf(searchTerm) > -1)) {
-                    results.push(org);
-                }
-            });
-        }
-        
-        // Paginate
-        var pageSize = self.options.rowsPerPage;
-        var startIndex = (page || 0) * pageSize;
-        var paged = results.slice(startIndex, startIndex + pageSize);
-        
-        deferred.resolve({
-            success: true,
-            results: paged,
-            totalResults: results.length,
-            page: page || 0,
-            hasMore: results.length > startIndex + pageSize
-        });
-    }, 200); // Simulate network delay
-    
-    return deferred.promise();
-};
 
 // Search PMS with timeout
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchPmsWithTimeout = function(query, page, timeout) {
@@ -865,38 +716,17 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchPms = function(
     }
 };
 
-// Helper method to search specific PMS entity type
+// Helper method to search specific PMS entity type - No PMS integration available
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchPmsType = function(type, query, page) {
-    var self = this;
-    
-    // Ensure mock service is available
-    if (!self.mockPmsService) {
-        console.error("Mock PMS service not initialized");
-        // Try to get it from the global namespace
-        self.mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
-        
-        // If still not available, try to create it
-        if (!self.mockPmsService && Alt.UnifiedDataSearch.Services.MockPmsService) {
-            console.warn("Creating mock PMS service on demand");
-            self.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
-            Alt.UnifiedDataSearch.Services.mockPmsService = self.mockPmsService;
-        }
-    }
-    
-    // Check if service is available and has search method
-    if (self.mockPmsService && typeof self.mockPmsService.search === 'function') {
-        return self.mockPmsService.search(type, query, page);
-    } else {
-        console.error("Mock PMS service search method not available");
-        // Return empty results as fallback
-        return $.Deferred().resolve({ 
-            success: true, 
-            results: [], 
-            totalResults: 0,
-            page: page || 0,
-            hasMore: false 
-        }).promise();
-    }
+    // No PMS integration - return empty results
+    console.log("PMS search requested but no PMS integration available");
+    return $.Deferred().resolve({ 
+        success: true, 
+        results: [], 
+        totalResults: 0,
+        page: page || 0,
+        hasMore: false 
+    }).promise();
 };
 
 // Handle entity selection
