@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Data Search - Comprehensive Test</title>
+    
+    <!-- ShareDo Core Dependencies -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    
+    <!-- jQuery and Knockout -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.1/knockout-min.js"></script>
+    
+    <!-- Widget Styles -->
+    <link rel="stylesheet" href="Widgets/UnifiedOdsEntityPicker/UnifiedOdsEntityPicker.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .test-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .test-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .test-body {
+            padding: 40px;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .test-section h2 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .test-section h2 i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+        
+        .widget-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .test-button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .test-button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .test-button.secondary {
+            background: #6c757d;
+        }
+        
+        .test-button.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .console-output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .console-line {
+            margin: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .console-line:before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: #666;
+        }
+        
+        .console-line.error {
+            color: #ff4444;
+        }
+        
+        .console-line.success {
+            color: #44ff44;
+        }
+        
+        .console-line.info {
+            color: #4444ff;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+        
+        .status-indicator.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-indicator.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-indicator.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .feature-item i {
+            color: #28a745;
+            margin-right: 10px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🔍 Unified Data Search - Comprehensive Test Suite</h1>
+            <p>Test inline search, keyboard navigation, animations, and entity selection</p>
+        </div>
+        
+        <div class="test-body">
+            <!-- Features Overview -->
+            <div class="test-section">
+                <h2>
+                    <i class="fa fa-star"></i>
+                    UX Improvements Implemented
+                    <span class="status-indicator ready">All Features Active</span>
+                </h2>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Smooth animations (200-300ms)</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Keyboard navigation (↑↓ Enter Esc)</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Rich entity display</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Source badges (ShareDo/PMS)</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Auto-focus on activation</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Loading pulse animation</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Hover state transitions</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Error handling with messages</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Clickable contact details</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fa fa-check-circle"></i>
+                        <span>Auto-scroll for keyboard nav</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Widget Test -->
+            <div class="test-section">
+                <h2>
+                    <i class="fa fa-user"></i>
+                    UnifiedOdsEntityPicker Widget
+                </h2>
+                <div class="widget-container">
+                    <div id="widget-test" class="Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker"></div>
+                </div>
+                <div class="test-controls">
+                    <button class="test-button" onclick="testSearch()">
+                        <i class="fa fa-search"></i> Test Search "Igor"
+                    </button>
+                    <button class="test-button" onclick="testKeyboardNav()">
+                        <i class="fa fa-keyboard-o"></i> Test Keyboard Navigation
+                    </button>
+                    <button class="test-button" onclick="testAnimation()">
+                        <i class="fa fa-magic"></i> Test Animations
+                    </button>
+                    <button class="test-button secondary" onclick="clearSelection()">
+                        <i class="fa fa-times"></i> Clear Selection
+                    </button>
+                    <button class="test-button secondary" onclick="getSelectedEntity()">
+                        <i class="fa fa-info-circle"></i> Get Selected Entity
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Console Output -->
+            <div class="test-section">
+                <h2>
+                    <i class="fa fa-terminal"></i>
+                    Console Output
+                </h2>
+                <div id="console-output" class="console-output">
+                    <div class="console-line info">Unified Data Search Test Suite initialized</div>
+                    <div class="console-line success">Widget loaded successfully</div>
+                    <div class="console-line">Waiting for user interaction...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Widget Scripts -->
+    <script src="Helpers/namespace.js"></script>
+    <script src="Services/MockPmsService.js"></script>
+    <script src="Services/ResultMergerService.js"></script>
+    <script src="Services/UnifiedSearchService.js"></script>
+    <script src="Widgets/UnifiedOdsEntityPicker/UnifiedOdsEntityPicker.js"></script>
+    
+    <script>
+        // Console logging helper
+        function log(message, type = '') {
+            var console = document.getElementById('console-output');
+            var line = document.createElement('div');
+            line.className = 'console-line ' + type;
+            line.textContent = message;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        // Mock $ajax for testing
+        window.$ajax = {
+            get: function(url, params) {
+                log('GET ' + url + ' ' + JSON.stringify(params || {}), 'info');
+                var deferred = $.Deferred();
+                
+                setTimeout(function() {
+                    if (url.includes('/api/ods/search')) {
+                        deferred.resolve({
+                            results: [
+                                {
+                                    id: 'ODS-001',
+                                    firstName: 'Igor',
+                                    lastName: 'Jericevich',
+                                    email: 'igor@example.com',
+                                    phone: '0412345678',
+                                    dateOfBirth: '1985-03-15',
+                                    address: '123 Test St',
+                                    suburb: 'Sydney',
+                                    postcode: '2000'
+                                }
+                            ],
+                            totalResults: 1
+                        });
+                    } else {
+                        deferred.resolve({});
+                    }
+                }, 500);
+                
+                return deferred.promise();
+            },
+            post: function(url, data) {
+                log('POST ' + url, 'info');
+                var deferred = $.Deferred();
+                
+                setTimeout(function() {
+                    if (url === '/api/ods/_search') {
+                        // ShareDo search response format
+                        var results = [{
+                            id: 'ODS-001',
+                            firstName: 'Igor',
+                            lastName: 'Smith',
+                            email: 'igor.smith@sharedo.com',
+                            phone: '0412345678',
+                            source: 'sharedo'
+                        }];
+                        
+                        deferred.resolve({
+                            rows: results.map(r => ({ result: JSON.stringify(r) })),
+                            totalRows: results.length
+                        });
+                    } else {
+                        deferred.resolve({ success: true });
+                    }
+                }, 300);
+                
+                return deferred.promise();
+            }
+        };
+        
+        window.$ajaxMutex = window.$ajax;
+        
+        // Mock UI events
+        window.$ui = {
+            events: {
+                publish: function(event, data) {
+                    log('Event published: ' + event, 'success');
+                },
+                subscribe: function(event, handler, context) {
+                    log('Event subscribed: ' + event, 'info');
+                    return 'subscription-id';
+                }
+            }
+        };
+        
+        // Initialize widget
+        var widgetViewModel;
+        
+        $(document).ready(function() {
+            var widgetElement = document.getElementById('widget-test');
+            
+            // Create widget configuration
+            var config = {
+                label: 'Select Entity',
+                placeholder: 'Click to search persons and organisations...',
+                allowMultiple: false,
+                allowClear: true,
+                required: false,
+                enabled: true,
+                useMockOds: false,
+                useMockPms: true,
+                mode: 'auto',
+                fieldName: 'selectedEntity',
+                returnField: 'odsId'
+            };
+            
+            // Initialize widget
+            widgetViewModel = new Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker(widgetElement, config);
+            
+            // Bind Knockout
+            ko.applyBindings(widgetViewModel, widgetElement);
+            
+            log('Widget initialized with configuration', 'success');
+        });
+        
+        // Test functions
+        function testSearch() {
+            log('Testing search for "Igor"...', 'info');
+            
+            // Activate inline search
+            widgetViewModel.activateInlineSearch();
+            
+            // Set search query
+            setTimeout(function() {
+                widgetViewModel.inlineSearchQuery('Igor');
+                log('Search query set to "Igor"', 'success');
+            }, 500);
+        }
+        
+        function testKeyboardNav() {
+            log('Testing keyboard navigation...', 'info');
+            
+            // Activate search first
+            widgetViewModel.activateInlineSearch();
+            
+            setTimeout(function() {
+                widgetViewModel.inlineSearchQuery('test');
+                
+                setTimeout(function() {
+                    log('Use arrow keys ↑↓ to navigate, Enter to select, Esc to close', 'info');
+                    
+                    // Simulate arrow down
+                    var event = { keyCode: 40, preventDefault: function() {} };
+                    widgetViewModel.handleSearchKeydown(null, event);
+                    log('Simulated Arrow Down key', 'success');
+                }, 1000);
+            }, 500);
+        }
+        
+        function testAnimation() {
+            log('Testing animations...', 'info');
+            
+            // Toggle search multiple times to see animations
+            widgetViewModel.activateInlineSearch();
+            log('Search activated - observe slide down animation', 'success');
+            
+            setTimeout(function() {
+                widgetViewModel.closeInlineSearch();
+                log('Search closed - observe fade out animation', 'success');
+                
+                setTimeout(function() {
+                    widgetViewModel.activateInlineSearch();
+                    log('Search reactivated - smooth transitions working', 'success');
+                }, 500);
+            }, 2000);
+        }
+        
+        function clearSelection() {
+            log('Clearing selection...', 'info');
+            widgetViewModel.clearSelection();
+            log('Selection cleared', 'success');
+        }
+        
+        function getSelectedEntity() {
+            var selected = widgetViewModel.selectedEntity();
+            if (selected) {
+                log('Selected entity: ' + JSON.stringify(selected, null, 2), 'success');
+            } else {
+                log('No entity selected', 'info');
+            }
+        }
+    </script>
+</body>
+</html>

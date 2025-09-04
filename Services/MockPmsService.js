@@ -1,15 +1,49 @@
+/**
+ * MockPmsService.js
+ * 
+ * Mock service that simulates a Practice Management System (PMS) for development and testing.
+ * Loads test data from JSON files with fallback to hardcoded defaults.
+ * 
+ * @namespace Alt.UnifiedDataSearch.Services
+ * @class MockPmsService
+ * @version 1.0.0
+ * @author Alterspective
+ * 
+ * Features:
+ * - Loads mock data from JSON files
+ * - Fallback to hardcoded test data
+ * - Simulated network delays (300-700ms)
+ * - Search filtering and pagination
+ * - Caching to prevent multiple file loads
+ * 
+ * Data Files:
+ * - mockPersonPmsData.json - Mock person records
+ * - mockOrganisationPmsData.json - Mock organisation records
+ * 
+ * Dependencies:
+ * - jQuery for AJAX and Deferred/Promise patterns
+ * - namespace.js for namespace management
+ */
+
 namespace("Alt.UnifiedDataSearch.Services");
 
+/**
+ * MockPmsService Constructor
+ * Creates a mock PMS service with lazy-loaded test data
+ */
 Alt.UnifiedDataSearch.Services.MockPmsService = function() {
     var self = this;
     
     // Store loaded data
     self.mockPersons = [];
     self.mockOrganisations = [];
-    self.dataLoaded = false;
-    self.loadingPromise = null;
+    self.dataLoaded = false;      // Flag to prevent redundant loads
+    self.loadingPromise = null;    // Cached promise for concurrent requests
     
-    // Initialize mock data from JSON files
+    /**
+     * Initialize mock data from JSON files with caching
+     * @returns {jQuery.Promise} Promise that resolves when data is loaded
+     */
     self.initializeMockData = function() {
         // If already loading, return the existing promise
         if (self.loadingPromise) {
@@ -26,16 +60,21 @@ Alt.UnifiedDataSearch.Services.MockPmsService = function() {
         return self.loadingPromise;
     };
     
-    // Load mock data from JSON files
+    /**
+     * Load mock data from JSON files with error handling
+     * @private
+     * @returns {jQuery.Promise} Combined promise for both data loads
+     */
     self.loadMockDataFromFiles = function() {
+        // Load persons data
         var personsPromise = $.ajax({
             url: "/_ideFiles/Alt/UnifiedDataSearch/Blades/UnifiedOdsPmsSearch/mockPersonPmsData.json",
             dataType: "json"
         }).done(function(data) {
             self.mockPersons = data;
-            console.log("Loaded " + data.length + " mock persons from JSON file");
+            console.log("✅ Loaded " + data.length + " mock persons from JSON file");
         }).fail(function(error) {
-            console.warn("Failed to load mock persons data, using fallback", error);
+            console.warn("⚠️ Failed to load mock persons data, using fallback", error);
             self.loadFallbackPersons();
         });
         

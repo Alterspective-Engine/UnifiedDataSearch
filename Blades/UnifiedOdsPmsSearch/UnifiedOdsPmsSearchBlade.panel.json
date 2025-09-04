@@ -16,6 +16,8 @@
         "/_ideFiles/Alt/UnifiedDataSearch/Services/MockPmsService.js",
         "/_ideFiles/Alt/UnifiedDataSearch/Services/ResultMergerService.js",
         "/_ideFiles/Alt/UnifiedDataSearch/Services/ConflictDetectorService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/UnifiedSearchService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/OdsImportService.js",
         "/_ideFiles/Alt/UnifiedDataSearch/Blades/UnifiedOdsPmsSearch/blade.js"
     ],
     "styles": [
@@ -26,9 +28,5 @@
     ],
     "components": [
         "Sharedo.UI.Framework.Components.RibbonBar"
-    ],
-    "dependencies": [
-        "jquery",
-        "knockout"
     ]
 }

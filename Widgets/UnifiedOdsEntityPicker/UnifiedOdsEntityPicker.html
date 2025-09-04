@@ -1,112 +1,329 @@
 <div class="Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker ods-entity-picker-widget">
-    
-    <!-- Empty State - No Entity Selected -->
-    <!-- ko if: !hasValue() -->
-    <div class="card entity-card">
-        <div class="status-section">
-            <span class="fa fa-2x fa-male"></span>
-        </div>
-        <div class="content-section card-message">
-            <span class="card-message-text" data-bind="text: options.label || 'Primary Owner'"></span>
-            <div class="search-prompt" data-bind="click: openSearchBlade">
-                <i class="fa fa-search"></i>
-                <span>Click to search</span>
-            </div>
-        </div>
-        <div class="menu-section" data-bind="visible: options.enabled !== false">
-            <a href="#" data-bind="click: openSearchBlade" class="fa fa-chevron-right text-primary"></a>
-        </div>
-    </div>
-    <!-- /ko -->
-    
-    <!-- Single Entity Selected -->
-    <!-- ko if: !options.allowMultiple && hasValue() -->
-    <div class="card entity-card with-content">
-        <div class="status-section">
-            <!-- ko if: selectedEntity().isUser && selectedEntity().profileImageUrl -->
-            <img class="user-profile-image" 
-                 data-bind="attr: { src: selectedEntity().profileImageUrl }" />
+    <form class="form-horizontal" data-bind="event: { keypress: function(data, event) { return event.keyCode !== 13; } }">
+        
+        <div class="form-group">
+            <!-- Label -->
+            <!-- ko if: !options.hideLabel -->
+            <label class="control-label col-md-3" data-bind="text: options.label || 'Select Entity'"></label>
             <!-- /ko -->
-            <!-- ko if: !selectedEntity().isUser || !selectedEntity().profileImageUrl -->
-            <span class="fa fa-2x" data-bind="css: getEntityIcon(selectedEntity())"></span>
-            <!-- /ko -->
-        </div>
-        <div class="content-section">
-            <div class="entity-header">
-                <span class="entity-header__title" data-bind="text: getEntityDisplayName(selectedEntity())"></span>
-                <!-- ko if: selectedEntity().roleLabel -->
-                <div class="entity-header__tags">
-                    <span class="entity-header__tags-item label label-primary" data-bind="text: selectedEntity().roleLabel"></span>
-                </div>
-                <!-- /ko -->
-            </div>
-            <div class="entity-content">
-                <div class="row">
-                    <!-- ko if: selectedEntity().email || selectedEntity().phone -->
-                    <div class="entity-content-block col-lg-12">
-                        <!-- ko if: selectedEntity().email -->
-                        <span class="entity-content-block__title">Email</span>
-                        <p class="entity-content-block__content" data-bind="text: selectedEntity().email"></p>
-                        <!-- /ko -->
-                        <!-- ko if: selectedEntity().phone -->
-                        <span class="entity-content-block__title">Phone</span>
-                        <p class="entity-content-block__content" data-bind="text: selectedEntity().phone"></p>
-                        <!-- /ko -->
+            
+            <div class="remove-horizontal-padding" data-bind="css: options.hideLabel ? 'col-md-12' : 'col-md-9'">
+                <!-- Modern Search-First Design -->
+                <div class="unified-picker-container">
+                    
+                    <!-- Always Visible Search Bar -->
+                    <!-- ko if: !hasValue() && options.allowInlineSearch !== false -->
+                    <div class="search-bar-container">
+                        <div class="search-input-wrapper">
+                            <i class="fa fa-search search-icon"></i>
+                            <input type="text" 
+                                   class="search-input form-control" 
+                                   placeholder="Search persons and organisations..."
+                                   data-bind="textInput: inlineSearchQuery,
+                                              hasFocus: searchHasFocus,
+                                              event: { 
+                                                  blur: handleSearchBlur, 
+                                                  focus: handleSearchFocus,
+                                                  keydown: handleSearchKeydown 
+                                              }"
+                                   autocomplete="off"
+                                   aria-label="Search for persons and organisations" />
+                            <!-- Loading spinner -->
+                            <!-- ko if: isPerformingQuickSearch() -->
+                            <i class="fa fa-spinner fa-spin search-spinner"></i>
+                            <!-- /ko -->
+                        </div>
+                        
+                        <!-- Quick action buttons -->
+                        <div class="search-actions">
+                            <!-- ko if: inlineSearchQuery() -->
+                            <button type="button" 
+                                    class="btn-clear"
+                                    data-bind="click: clearSearch"
+                                    aria-label="Clear search">
+                                <i class="fa fa-times"></i>
+                            </button>
+                            <!-- /ko -->
+                            
+                            <button type="button" 
+                                    class="btn-advanced"
+                                    data-bind="click: openSearchBlade"
+                                    aria-label="Advanced search">
+                                <i class="fa fa-filter"></i>
+                                <span class="hidden-xs">Advanced</span>
+                            </button>
+                        </div>
                     </div>
                     <!-- /ko -->
-                </div>
-            </div>
-        </div>
-        <div class="menu-section" data-bind="visible: options.enabled !== false">
-            <!-- ko if: options.allowEdit -->
-            <a href="#" data-bind="click: editEntity" class="fa fa-pencil text-primary"></a>
-            <!-- /ko -->
-            <!-- ko if: options.allowClear && !options.required -->
-            <a href="#" data-bind="click: clearSelection" class="fa fa-unlink text-primary"></a>
-            <!-- /ko -->
-        </div>
-    </div>
-    <!-- /ko -->
-    
-    <!-- Multiple Entities Selected -->
-    <!-- ko if: options.allowMultiple && hasValue() -->
-    <div class="card entity-card multiple">
-        <div style="width: 100%" data-bind="foreach: selectedEntities">
-            <div class="card entity-card with-content" style="margin-bottom: 10px;">
-                <div class="status-section">
-                    <span class="fa" data-bind="css: $parent.getEntityIcon($data)"></span>
-                </div>
-                <div class="content-section">
-                    <div class="entity-header">
-                        <span class="entity-header__title" data-bind="text: $parent.getEntityDisplayName($data)"></span>
-                        <!-- ko if: $data.roleLabel -->
-                        <div class="entity-header__tags">
-                            <span class="entity-header__tags-item label label-primary" data-bind="text: $data.roleLabel"></span>
+                    
+                    <!-- Fallback when inline search disabled -->
+                    <!-- ko if: !hasValue() && options.allowInlineSearch === false -->
+                    <div class="no-inline-search-container">
+                        <div class="entity-card card empty-state">
+                            <div class="status-section">
+                                <i class="fa fa-fw fa-2x fa-user-plus text-muted"></i>
+                            </div>
+                            <div class="content-section">
+                                <div class="empty-message">
+                                    <span class="message-text">No entity selected</span>
+                                    <span class="help-text">Click search to select</span>
+                                </div>
+                            </div>
+                            <div class="menu-section">
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm"
+                                        data-bind="click: openSearchBlade">
+                                    <i class="fa fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                    
+                    <!-- Search Results Dropdown -->
+                    <!-- ko if: showSearchResults() -->
+                    <div class="search-results-dropdown">
+                        <!-- Results count -->
+                        <!-- ko if: !isPerformingQuickSearch() && inlineSearchResults().length > 0 -->
+                        <div class="results-header">
+                            <span class="results-count" data-bind="text: inlineSearchResults().length + ' results found'"></span>
+                            <!-- ko if: inlineSearchResults().length > 5 -->
+                            <a href="#" class="view-all-link" data-bind="click: openSearchBlade">View all</a>
+                            <!-- /ko -->
+                        </div>
+                        <!-- /ko -->
+                        
+                        <!-- Loading State -->
+                        <!-- ko if: isPerformingQuickSearch() -->
+                        <div class="search-loading">
+                            <div class="loading-animation">
+                                <div class="pulse-loader">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                            <span class="loading-text">Searching...</span>
+                        </div>
+                        <!-- /ko -->
+                        
+                        <!-- Results List -->
+                        <!-- ko if: !isPerformingQuickSearch() && inlineSearchResults().length > 0 -->
+                        <div class="results-list">
+                            <!-- ko foreach: { data: inlineSearchResults, as: 'result' } -->
+                            <div class="result-item" 
+                                 data-bind="click: function() { $parent.selectInlineResult(result); },
+                                            css: { 
+                                                'selected': $parent.selectedResultIndex() === $index(),
+                                                'has-match': result.source === 'matched'
+                                            },
+                                            event: { 
+                                                mouseenter: function() { $parent.selectedResultIndex($index()); },
+                                                mousedown: $parent.preventBlur
+                                            }">
+                                <div class="result-icon">
+                                    <i class="fa" data-bind="css: result.icon || 'fa-user'"></i>
+                                </div>
+                                <div class="result-content">
+                                    <div class="result-title" data-bind="text: result.displayName"></div>
+                                    <!-- ko if: result.email || result.primaryEmail -->
+                                    <div class="result-meta">
+                                        <i class="fa fa-envelope-o"></i>
+                                        <span data-bind="text: result.email || result.primaryEmail"></span>
+                                    </div>
+                                    <!-- /ko -->
+                                    <!-- ko if: result.phone || result.primaryPhone -->
+                                    <div class="result-meta">
+                                        <i class="fa fa-phone"></i>
+                                        <span data-bind="text: result.phone || result.primaryPhone"></span>
+                                    </div>
+                                    <!-- /ko -->
+                                </div>
+                                <div class="result-badges">
+                                    <!-- ko if: result.source === 'sharedo' -->
+                                    <span class="badge badge-ods">ODS</span>
+                                    <!-- /ko -->
+                                    <!-- ko if: result.source === 'pms' -->
+                                    <span class="badge badge-pms">PMS</span>
+                                    <!-- /ko -->
+                                    <!-- ko if: result.source === 'matched' -->
+                                    <span class="badge badge-matched">
+                                        <i class="fa fa-link"></i> Linked
+                                    </span>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
+                            <!-- /ko -->
+                        </div>
+                        <!-- /ko -->
+                        
+                        <!-- No Results -->
+                        <!-- ko if: !isPerformingQuickSearch() && inlineSearchResults().length === 0 && inlineSearchQuery().length >= 2 -->
+                        <div class="no-results">
+                            <i class="fa fa-search fa-2x text-muted"></i>
+                            <p class="no-results-text">No results found for "<span data-bind="text: inlineSearchQuery"></span>"</p>
+                            <button type="button" 
+                                    class="btn btn-link"
+                                    data-bind="click: openSearchBlade">
+                                Try advanced search
+                            </button>
+                        </div>
+                        <!-- /ko -->
+                        
+                        <!-- Minimum Characters Message -->
+                        <!-- ko if: !isPerformingQuickSearch() && inlineSearchQuery().length > 0 && inlineSearchQuery().length < 2 -->
+                        <div class="min-chars-message">
+                            <i class="fa fa-info-circle"></i>
+                            Type at least 2 characters to search
                         </div>
                         <!-- /ko -->
                     </div>
+                    <!-- /ko -->
+                    
+                    <!-- Selected Entity Display -->
+                    <!-- ko if: hasValue() && !options.allowMultiple -->
+                    <div class="selected-entity-container">
+                        <div class="selected-entity-card">
+                            <div class="entity-icon-section">
+                                <!-- ko if: selectedEntity() && selectedEntity().profileImageUrl -->
+                                <img class="entity-avatar" 
+                                     data-bind="attr: { src: selectedEntity().profileImageUrl }"
+                                     alt="Profile" />
+                                <!-- /ko -->
+                                <!-- ko if: !selectedEntity() || !selectedEntity().profileImageUrl -->
+                                <div class="entity-icon-placeholder">
+                                    <i class="fa fa-2x" data-bind="css: getEntityIcon(selectedEntity())"></i>
+                                </div>
+                                <!-- /ko -->
+                            </div>
+                            
+                            <div class="entity-info-section">
+                                <div class="entity-name" data-bind="text: getEntityDisplayName(selectedEntity())"></div>
+                                
+                                <!-- Entity Details - Configurable Fields -->
+                                <div class="entity-details">
+                                    <!-- ko if: shouldShowField('email') && (selectedEntity().email || selectedEntity().primaryEmail) -->
+                                    <span class="entity-detail">
+                                        <i class="fa fa-envelope-o"></i>
+                                        <span data-bind="text: selectedEntity().email || selectedEntity().primaryEmail"></span>
+                                    </span>
+                                    <!-- /ko -->
+                                    
+                                    <!-- ko if: shouldShowField('phone') && (selectedEntity().phone || selectedEntity().primaryPhone || selectedEntity().mobile) -->
+                                    <span class="entity-detail">
+                                        <i class="fa fa-phone"></i>
+                                        <span data-bind="text: selectedEntity().phone || selectedEntity().primaryPhone || selectedEntity().mobile"></span>
+                                    </span>
+                                    <!-- /ko -->
+                                    
+                                    <!-- ko if: shouldShowField('address') && (selectedEntity().address || selectedEntity().suburb) -->
+                                    <span class="entity-detail">
+                                        <i class="fa fa-map-marker"></i>
+                                        <span data-bind="text: formatAddress(selectedEntity())"></span>
+                                    </span>
+                                    <!-- /ko -->
+                                    
+                                    <!-- ko if: shouldShowField('dateOfBirth') && selectedEntity().dateOfBirth -->
+                                    <span class="entity-detail">
+                                        <i class="fa fa-calendar"></i>
+                                        <span data-bind="text: formatDateOfBirth(selectedEntity().dateOfBirth)"></span>
+                                    </span>
+                                    <!-- /ko -->
+                                    
+                                    <!-- ko if: shouldShowField('abn') && selectedEntity().abn -->
+                                    <span class="entity-detail">
+                                        <i class="fa fa-building-o"></i>
+                                        ABN: <span data-bind="text: selectedEntity().abn"></span>
+                                    </span>
+                                    <!-- /ko -->
+                                </div>
+                                
+                                <!-- Source Badge - Only show for PMS or matched sources if configured -->
+                                <!-- ko if: options.showSourceBadge -->
+                                <div class="entity-badges">
+                                    <!-- ko if: selectedEntity().source === 'pms' -->
+                                    <span class="badge badge-pms">
+                                        <i class="fa fa-briefcase"></i> PMS
+                                    </span>
+                                    <!-- /ko -->
+                                    <!-- ko if: selectedEntity().source === 'matched' -->
+                                    <span class="badge badge-matched">
+                                        <i class="fa fa-link"></i> Linked
+                                    </span>
+                                    <!-- /ko -->
+                                </div>
+                                <!-- /ko -->
+                            </div>
+                            
+                            <div class="entity-actions-section">
+                                <!-- ko if: selectedEntity().odsId -->
+                                <button type="button" 
+                                        class="btn btn-link btn-sm"
+                                        data-bind="click: viewEntity"
+                                        title="View details">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                                <!-- /ko -->
+                                
+                                <!-- ko if: options.allowEdit !== false -->
+                                <button type="button" 
+                                        class="btn btn-link btn-sm"
+                                        data-bind="click: openSearchBlade"
+                                        title="Change selection">
+                                    <i class="fa fa-pencil"></i>
+                                </button>
+                                <!-- /ko -->
+                                
+                                <!-- ko if: options.allowClear !== false && !options.required -->
+                                <button type="button" 
+                                        class="btn btn-link btn-sm text-danger"
+                                        data-bind="click: clearSelection"
+                                        title="Remove">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                                <!-- /ko -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                    
+                    <!-- Multiple Selection Display -->
+                    <!-- ko if: hasValue() && options.allowMultiple -->
+                    <div class="multiple-selection-container">
+                        <div class="selected-entities-list">
+                            <!-- ko foreach: selectedEntities -->
+                            <div class="selected-entity-chip">
+                                <i class="fa" data-bind="css: $parent.getEntityIcon($data)"></i>
+                                <span class="chip-name" data-bind="text: $parent.getEntityDisplayName($data)"></span>
+                                <button type="button" 
+                                        class="chip-remove"
+                                        data-bind="click: function() { $parent.removeEntity($data); }">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            </div>
+                            <!-- /ko -->
+                        </div>
+                        
+                        <!-- Add More Button -->
+                        <button type="button" 
+                                class="btn btn-default btn-sm add-more-btn"
+                                data-bind="click: openSearchBlade">
+                            <i class="fa fa-plus"></i> Add Another
+                        </button>
+                    </div>
+                    <!-- /ko -->
+                    
                 </div>
-                <div class="menu-section">
-                    <a href="#" data-bind="click: function() { $parent.removeEntity($data); }" class="fa fa-unlink text-primary"></a>
+                
+                <!-- Validation Message -->
+                <!-- ko if: options.required && !isValid() && hasBeenFocused() -->
+                <div class="validation-message">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <span data-bind="text: options.requiredMessage || 'This field is required'"></span>
                 </div>
+                <!-- /ko -->
             </div>
         </div>
-        <div class="column-auto menu-section multi-select-menu-section" data-bind="visible: options.enabled !== false">
-            <a href="#" data-bind="click: openSearchBlade" class="fa fa-chevron-right text-primary"></a>
-        </div>
-    </div>
-    <!-- /ko -->
-    
-    <!-- Loading State -->
-    <!-- ko if: isSearching() -->
-    <div class="card entity-card">
-        <div class="status-section">
-            <span class="fa fa-2x fa-spinner fa-spin"></span>
-        </div>
-        <div class="content-section card-message">
-            <span class="card-message-text">Loading...</span>
-        </div>
-    </div>
-    <!-- /ko -->
-    
+        
+    </form>
 </div>

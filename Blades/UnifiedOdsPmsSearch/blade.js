@@ -1,9 +1,51 @@
+/**
+ * UnifiedOdsPmsSearchBlade.js
+ * 
+ * ShareDo blade that provides unified search across ODS and external PMS systems.
+ * Handles entity selection, auto-import from PMS, and conflict resolution.
+ * 
+ * @namespace Alt.UnifiedDataSearch.Blades
+ * @class UnifiedOdsPmsSearch
+ * @version 1.0.0
+ * @author Alterspective
+ * 
+ * Blade Modes:
+ * - "select" - Returns selected entity without creating ODS records
+ * - "auto" - Automatically creates ODS entities from PMS records when selected
+ * 
+ * Features:
+ * - Dual-system search with progress tracking
+ * - Automatic result merging and deduplication
+ * - PMS to ODS entity import with proper formatting
+ * - Conflict detection and resolution
+ * - Support for both persons and organisations
+ * 
+ * ShareDo Blade Requirements:
+ * - Uses namespace() not ES6 modules
+ * - Uses Knockout.js observables
+ * - Implements loadAndBind() lifecycle method
+ * - Implements onDestroy() for cleanup
+ * 
+ * Dependencies:
+ * - jQuery for DOM and AJAX
+ * - Knockout.js for data binding
+ * - ShareDo UI framework components
+ * - UnifiedDataSearch services
+ */
+
 namespace("Alt.UnifiedDataSearch.Blades");
 
+/**
+ * UnifiedOdsPmsSearch Blade Constructor
+ * 
+ * @param {HTMLElement} element - DOM element for blade content
+ * @param {Object} configuration - Blade configuration options
+ * @param {Object} stackModel - ShareDo panel stack model
+ */
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch = function(element, configuration, stackModel) {
     var self = this;
     
-    // Store parameters
+    // Store blade context
     self.element = element;
     self.configuration = configuration || {};
     self.stackModel = stackModel;
@@ -143,9 +185,50 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.createRibbonBar = fun
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.buildServices = function() {
     var self = this;
     
-    // Get service instances
+    // Initialize shared search service with configuration
+    self.searchService = new Alt.UnifiedDataSearch.Services.UnifiedSearchService({
+        useMockPms: self.options.useMockPms,
+        useMockOds: self.options.useMockOds,
+        pmsProvider: self.options.pmsProvider || "pms",
+        pmsTimeout: self.options.pmsTimeout || 5000,
+        labels: self.options.labels || {
+            sharedo: "ShareDo",
+            pms: "PMS",
+            matched: "Matched"
+        }
+    });
+    
+    // Use singleton import service
+    self.importService = Alt.UnifiedDataSearch.Services.odsImportService;
+    
+    // Get other service instances for backward compatibility
+    // Ensure mock service is initialized
+    if (!Alt.UnifiedDataSearch.Services.mockPmsService) {
+        console.warn("MockPmsService not found, creating new instance");
+        if (Alt.UnifiedDataSearch.Services.MockPmsService) {
+            Alt.UnifiedDataSearch.Services.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
+        } else {
+            console.error("MockPmsService class not available");
+        }
+    }
     self.mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
+    
+    // Ensure result merger service is initialized
+    if (!Alt.UnifiedDataSearch.Services.resultMergerService) {
+        console.warn("ResultMergerService not found, creating new instance");
+        if (Alt.UnifiedDataSearch.Services.ResultMergerService) {
+            Alt.UnifiedDataSearch.Services.resultMergerService = new Alt.UnifiedDataSearch.Services.ResultMergerService();
+        }
+    }
     self.resultMergerService = Alt.UnifiedDataSearch.Services.resultMergerService;
+    
+    // Ensure conflict detector service is initialized
+    if (!Alt.UnifiedDataSearch.Services.conflictDetectorService) {
+        console.warn("ConflictDetectorService not found, creating new instance");
+        if (Alt.UnifiedDataSearch.Services.ConflictDetectorService) {
+            Alt.UnifiedDataSearch.Services.conflictDetectorService = new Alt.UnifiedDataSearch.Services.ConflictDetectorService();
+        }
+    }
     self.conflictDetectorService = Alt.UnifiedDataSearch.Services.conflictDetectorService;
     
     // Build participant service if in add mode
@@ -239,12 +322,58 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.checkPmsProvider = fu
 };
 */
 
-// Execute search
+// Execute search using shared service (new approach)
+Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.executeSearchWithSharedService = function() {
+    var self = this;
+    var query = self.searchQuery();
+    
+    if (!query) return;
+    
+    console.log("%c🔍 UNIFIED SEARCH STARTED", "color: #667eea; font-weight: bold; font-size: 14px");
+    console.log("Query:", query);
+    
+    // Reset status indicators
+    self.isSearching(true);
+    self.hasSearched(true);
+    self.searchErrors([]);
+    
+    // Use shared search service
+    self.searchService.search(query, {
+        pageSize: self.options.rowsPerPage,
+        entityTypes: self.getSelectedEntityTypes ? self.getSelectedEntityTypes() : [self.searchEntityType()]
+    })
+    .done(function(results) {
+        console.log("%c✅ SEARCH COMPLETE", "color: #22c55e; font-weight: bold; font-size: 14px");
+        console.log("Results:", results);
+        
+        // Enrich results if method available
+        if (self.resultMergerService && self.resultMergerService.enrichResults) {
+            results = self.resultMergerService.enrichResults(results);
+        }
+        
+        self.searchResults(results);
+        self.isSearching(false);
+    })
+    .fail(function(error) {
+        console.error("Search failed:", error);
+        self.searchErrors.push("Search failed: " + error);
+        self.searchResults([]);
+        self.isSearching(false);
+    });
+};
+
+/**
+ * Execute search across both ODS and PMS systems
+ * Runs searches in parallel with timeout handling for PMS
+ * 
+ * @returns {void}
+ */
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.executeSearch = function() {
     var self = this;
     var query = self.searchQuery();
     var page = self.page();
     
+    // Validate search query
     if (!query) return;
     
     console.log("%c🔍 UNIFIED SEARCH STARTED", "color: #667eea; font-weight: bold; font-size: 14px");
@@ -695,16 +824,79 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchPms = function(
     var self = this;
     
     // Determine entity type for mock search
-    var type = "persons";
-    if (self.searchEntityType() === "organisation") {
-        type = "organisations";
-    } else if (self.searchEntityType() === "all") {
-        // For "all", search persons (in a real implementation, would search both)
-        type = "persons";
+    var entityType = self.searchEntityType();
+    
+    // For "all", we need to search both types and merge
+    if (entityType === "all") {
+        // Search both persons and organisations
+        var personsPromise = self.searchPmsType("persons", query, page);
+        var orgsPromise = self.searchPmsType("organisations", query, page);
+        
+        // Merge results from both searches
+        return $.when(personsPromise, orgsPromise).then(function(personsResult, orgsResult) {
+            var combinedResults = {
+                success: true,
+                results: [],
+                totalResults: 0,
+                page: page || 0,
+                hasMore: false
+            };
+            
+            // Add persons results
+            if (personsResult && personsResult.results) {
+                combinedResults.results = combinedResults.results.concat(personsResult.results);
+                combinedResults.totalResults += personsResult.totalResults || personsResult.results.length;
+            }
+            
+            // Add organisations results
+            if (orgsResult && orgsResult.results) {
+                combinedResults.results = combinedResults.results.concat(orgsResult.results);
+                combinedResults.totalResults += orgsResult.totalResults || orgsResult.results.length;
+            }
+            
+            combinedResults.hasMore = (personsResult && personsResult.hasMore) || (orgsResult && orgsResult.hasMore);
+            
+            return combinedResults;
+        });
+    } else {
+        // Search specific type
+        var type = entityType === "organisation" ? "organisations" : "persons";
+        return self.searchPmsType(type, query, page);
+    }
+};
+
+// Helper method to search specific PMS entity type
+Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchPmsType = function(type, query, page) {
+    var self = this;
+    
+    // Ensure mock service is available
+    if (!self.mockPmsService) {
+        console.error("Mock PMS service not initialized");
+        // Try to get it from the global namespace
+        self.mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
+        
+        // If still not available, try to create it
+        if (!self.mockPmsService && Alt.UnifiedDataSearch.Services.MockPmsService) {
+            console.warn("Creating mock PMS service on demand");
+            self.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
+            Alt.UnifiedDataSearch.Services.mockPmsService = self.mockPmsService;
+        }
     }
     
-    // Always use mock PMS service
-    return self.mockPmsService.search(type, query, page);
+    // Check if service is available and has search method
+    if (self.mockPmsService && typeof self.mockPmsService.search === 'function') {
+        return self.mockPmsService.search(type, query, page);
+    } else {
+        console.error("Mock PMS service search method not available");
+        // Return empty results as fallback
+        return $.Deferred().resolve({ 
+            success: true, 
+            results: [], 
+            totalResults: 0,
+            page: page || 0,
+            hasMore: false 
+        }).promise();
+    }
 };
 
 // Handle entity selection
@@ -1089,7 +1281,36 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.checkSettingsAndAddPm
         });
 };
 
-// Import PMS entity to ODS
+// Import PMS entity to ODS using shared service (new approach)
+Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.importPmsEntityWithSharedService = function(entity) {
+    var self = this;
+    
+    console.log("Importing PMS entity using shared service:", entity);
+    
+    // Use shared import service
+    self.importService.importEntity(entity)
+        .done(function(imported) {
+            console.log("Entity imported successfully:", imported);
+            
+            // Update entity reference
+            entity.odsId = imported.odsId;
+            entity.source = "sharedo";
+            
+            // Add as participant if in add mode
+            if (self.options.mode === "addParticipant") {
+                self.addAsParticipant(entity);
+            } else {
+                // Just select it
+                self.selectEntity(entity);
+            }
+        })
+        .fail(function(error) {
+            console.error("Failed to import entity:", error);
+            alert("Failed to import entity: " + error);
+        });
+};
+
+// Import PMS entity to ODS (original method kept for backward compatibility)
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.importPmsEntity = function(entity) {
     var self = this;
     

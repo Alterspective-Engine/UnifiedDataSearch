@@ -155,28 +155,67 @@
                 </div>
                 
                 <div class="result-details">
-                    <!-- ko if: primaryEmail -->
-                    <div class="detail-item">
-                        <i class="fa fa-envelope"></i>
-                        <span data-bind="text: primaryEmail"></span>
-                    </div>
+                    <!-- Person-specific details -->
+                    <!-- ko if: icon === 'fa-user' -->
+                        <!-- ko if: data.email || primaryEmail -->
+                        <div class="detail-item">
+                            <i class="fa fa-envelope"></i>
+                            <span data-bind="text: data.email || primaryEmail || 'No email'"></span>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: data.phone || primaryPhone -->
+                        <div class="detail-item">
+                            <i class="fa fa-phone"></i>
+                            <span data-bind="text: data.phone || primaryPhone || 'No phone'"></span>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: data.dateOfBirth -->
+                        <div class="detail-item">
+                            <i class="fa fa-calendar"></i>
+                            DOB: <span data-bind="text: data.dateOfBirth"></span>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: data.address || formattedAddress -->
+                        <div class="detail-item">
+                            <i class="fa fa-map-marker"></i>
+                            <span data-bind="text: formattedAddress || data.address || 'No address'"></span>
+                        </div>
+                        <!-- /ko -->
                     <!-- /ko -->
-                    <!-- ko if: primaryPhone -->
-                    <div class="detail-item">
-                        <i class="fa fa-phone"></i>
-                        <span data-bind="text: primaryPhone"></span>
-                    </div>
+                    
+                    <!-- Organisation-specific details -->
+                    <!-- ko if: icon === 'fa-building' -->
+                        <!-- ko if: data.tradingName && data.tradingName !== data.name -->
+                        <div class="detail-item">
+                            <i class="fa fa-tag"></i>
+                            Trading as: <span data-bind="text: data.tradingName"></span>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: data.abn -->
+                        <div class="detail-item">
+                            <i class="fa fa-certificate"></i>
+                            ABN: <span data-bind="text: data.abn"></span>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: data.email || primaryEmail -->
+                        <div class="detail-item">
+                            <i class="fa fa-envelope"></i>
+                            <span data-bind="text: data.email || primaryEmail || 'No email'"></span>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: data.phone || primaryPhone -->
+                        <div class="detail-item">
+                            <i class="fa fa-phone"></i>
+                            <span data-bind="text: data.phone || primaryPhone || 'No phone'"></span>
+                        </div>
+                        <!-- /ko -->
                     <!-- /ko -->
-                    <!-- ko if: formattedAddress -->
-                    <div class="detail-item">
-                        <i class="fa fa-map-marker"></i>
-                        <span data-bind="text: formattedAddress"></span>
-                    </div>
-                    <!-- /ko -->
-                    <!-- ko if: data.abn -->
-                    <div class="detail-item">
-                        <i class="fa fa-certificate"></i>
-                        ABN: <span data-bind="text: data.abn"></span>
+                    
+                    <!-- Reference ID if available -->
+                    <!-- ko if: reference || data.reference -->
+                    <div class="detail-item detail-reference">
+                        <i class="fa fa-link"></i>
+                        Ref: <span data-bind="text: reference || data.reference"></span>
                     </div>
                     <!-- /ko -->
                 </div>

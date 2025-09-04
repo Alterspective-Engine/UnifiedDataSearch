@@ -9,7 +9,7 @@
         "icon": "fa-cog",
         "description": "Configuration designer for UnifiedOdsEntityPicker widget",
         "categories": ["Designer"],
-        "isConfigurable": false
+        "isConfigurable": true
     },
     "scripts": [
         "/_ideFiles/Alt/UnifiedDataSearch/Widgets/UnifiedOdsEntityPickerDesigner/UnifiedOdsEntityPickerDesigner.js"

@@ -1,27 +1,68 @@
+/**
+ * ResultMergerService.js
+ * 
+ * Service responsible for merging search results from ODS (ShareDo) and PMS (Practice Management System).
+ * Handles duplicate detection, conflict identification, and reference field matching.
+ * 
+ * @namespace Alt.UnifiedDataSearch.Services
+ * @class ResultMergerService
+ * @version 1.0.0
+ * @author Alterspective
+ * 
+ * Key Features:
+ * - Merges results from multiple data sources
+ * - Detects matches using both data comparison and reference field lookup
+ * - Identifies data conflicts between matched records
+ * - Enriches results with display formatting
+ * 
+ * Dependencies:
+ * - jQuery for utilities
+ * - namespace.js for namespace management
+ */
+
 namespace("Alt.UnifiedDataSearch.Services");
 
+/**
+ * ResultMergerService Constructor
+ * Creates a service instance for merging ODS and PMS search results
+ */
 Alt.UnifiedDataSearch.Services.ResultMergerService = function() {
     var self = this;
     
-    self.mergeResults = function(odsResults, pmsResults) {
+    /**
+     * Merges search results from ODS and PMS systems
+     * 
+     * @param {Object} odsResults - Results from ShareDo ODS search
+     * @param {Object} odsResults.results - Array of ODS entities
+     * @param {Object} pmsResults - Results from PMS search
+     * @param {Object} pmsResults.results - Array of PMS entities
+     * @param {Object} labels - Optional custom labels for sources
+     * @param {String} labels.sharedo - Label for ShareDo source
+     * @param {String} labels.pms - Label for PMS source
+     * @param {String} labels.matched - Label for matched records
+     * @returns {Array} Merged array of results with conflict detection
+     */
+    self.mergeResults = function(odsResults, pmsResults, labels) {
         var merged = [];
-        var matchMap = {};
-        var referenceMap = {}; // Map ODS records by their Reference field
+        var matchMap = {};      // Maps entities by generated match keys for data-based matching
+        var referenceMap = {};   // Maps ODS records by their Reference field for PMS ID lookup
         
-        // Process ODS results first
+        // STEP 1: Process ODS results first to establish baseline
         if (odsResults && (odsResults.results || odsResults.length)) {
             var odsData = odsResults.results || odsResults;
             
-            // Ensure it's an array
+            // Ensure it's an array (handle single result edge case)
             if (!Array.isArray(odsData)) {
                 odsData = [odsData];
             }
             
+            // Process each ODS entity
             odsData.forEach(function(item) {
                 var key = self.generateMatchKey(item);
                 var result = {
                     id: "merged-" + (merged.length + 1),
                     source: "sharedo",
+                    sourceLabel: labels && labels.sharedo || "ShareDo",
                     odsId: item.id || item.odsId,
                     displayName: self.getDisplayName(item),
                     data: item,
@@ -33,7 +74,8 @@ Alt.UnifiedDataSearch.Services.ResultMergerService = function() {
                 };
                 matchMap[key] = result;
                 
-                // Also track by Reference field if it exists
+                // IMPORTANT: Track by Reference field for PMS ID matching
+                // This allows us to find ODS records that were previously imported from PMS
                 if (result.reference) {
                     referenceMap[result.reference] = result;
                 }
@@ -42,7 +84,7 @@ Alt.UnifiedDataSearch.Services.ResultMergerService = function() {
             });
         }
         
-        // Process PMS results and find matches
+        // STEP 2: Process PMS results and identify matches
         if (pmsResults && pmsResults.results) {
             pmsResults.results.forEach(function(item) {
                 var key = self.generateMatchKey(item);
@@ -55,6 +97,7 @@ Alt.UnifiedDataSearch.Services.ResultMergerService = function() {
                 if (matchedRecord) {
                     // Found a match - update existing record
                     matchedRecord.source = "matched";
+                    matchedRecord.sourceLabel = labels && labels.matched || "Matched";
                     matchedRecord.pmsId = item.id;
                     matchedRecord.pmsData = item;
                     
@@ -85,6 +128,7 @@ Alt.UnifiedDataSearch.Services.ResultMergerService = function() {
                     merged.push({
                         id: "merged-" + (merged.length + 1),
                         source: "pms",
+                        sourceLabel: labels && labels.pms || "PMS",
                         pmsId: item.id,
                         displayName: self.getDisplayName(item),
                         data: item,
@@ -101,8 +145,15 @@ Alt.UnifiedDataSearch.Services.ResultMergerService = function() {
         return merged;
     };
     
+    /**
+     * Generates a unique key for entity matching
+     * Uses different strategies for persons vs organisations
+     * 
+     * @param {Object} item - Entity to generate key for
+     * @returns {String} Unique match key in format "type:field1:field2:..."
+     */
     self.generateMatchKey = function(item) {
-        // Generate unique key for matching
+        // Determine entity type and generate appropriate key
         if (item.odsEntityType === "person" || item.odsType === "person" || 
             item.firstName || item.lastName || item.surname) {
             // Person matching - ShareDo uses 'surname', mock PMS uses 'lastName'
@@ -209,22 +260,18 @@ Alt.UnifiedDataSearch.Services.ResultMergerService = function() {
             if (data.postcode) addressParts.push(data.postcode);
             result.formattedAddress = addressParts.join(", ");
             
-            // Add source label
+            // Add source class for styling
             switch(result.source) {
                 case "sharedo":
-                    result.sourceLabel = "ShareDo ODS";
                     result.sourceClass = "badge-primary";
                     break;
                 case "pms":
-                    result.sourceLabel = "PMS System";
                     result.sourceClass = "badge-info";
                     break;
                 case "matched":
-                    result.sourceLabel = "Matched";
                     result.sourceClass = "badge-success";
                     break;
                 default:
-                    result.sourceLabel = "Unknown";
                     result.sourceClass = "badge-default";
             }
             
