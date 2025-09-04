@@ -23,7 +23,17 @@
       "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
       "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
       "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch/**)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
+      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)"
     ],
     "deny": [],
     "ask": []
