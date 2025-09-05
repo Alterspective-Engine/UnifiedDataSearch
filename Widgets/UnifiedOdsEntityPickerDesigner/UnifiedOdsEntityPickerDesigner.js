@@ -22,9 +22,9 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPickerDesigner = function(element,
         allowMultiple: false,
         allowClear: true,
         entityTypes: ["person", "organisation"],
-        searchMode: "unified",
-        useMockPms: true,
-        useMockOds: false,
+        searchMode: "odsOnly",
+        // useMockPms: REMOVED - mock services deprecated
+        // useMockOds: REMOVED - mock services deprecated
         mode: "select",
         showIcon: true,
         showEmail: true,
@@ -54,8 +54,8 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPickerDesigner = function(element,
     
     // Search configuration
     self.searchMode = ko.observable(self.config.searchMode);
-    self.useMockPms = ko.observable(self.config.useMockPms);
-    self.useMockOds = ko.observable(self.config.useMockOds);
+    // self.useMockPms = REMOVED - mock services deprecated
+    // self.useMockOds = REMOVED - mock services deprecated
     self.pmsTimeout = ko.observable(self.config.pmsTimeout);
     
     // Mode
@@ -167,8 +167,8 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPickerDesigner.prototype.getConfig
         allowClear: self.allowClear(),
         entityTypes: self.entityTypes(),
         searchMode: self.searchMode(),
-        useMockPms: self.useMockPms(),
-        useMockOds: self.useMockOds(),
+        // useMockPms: REMOVED - mock services deprecated
+        // useMockOds: REMOVED - mock services deprecated
         pmsTimeout: parseInt(self.pmsTimeout()) || 5000,
         mode: self.mode(),
         showIcon: self.showIcon(),

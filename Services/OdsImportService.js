@@ -68,44 +68,34 @@ Alt.UnifiedDataSearch.Services.OdsImportService = function() {
             "/api/aspects/ods/people/" :  // Note: plural "people"
             "/api/aspects/ods/organisations/"; // Note: plural "organisations"
         
-        console.log("Posting to " + endpoint, payload);
+        console.log("OdsImportService: Using SHARED SearchApiService for entity creation");
         
-        // Use ShareDo's $ajax utility
-        if (window.$ajax) {
-            $ajax.post(endpoint, payload)
-                .done(function(created) {
-                    console.log("Entity created in ODS:", created);
-                    // Update entity with ODS ID
-                    entity.odsId = created.id;
-                    entity.source = "sharedo";
-                    deferred.resolve(entity);
-                })
-                .fail(function(error) {
-                    console.error("Failed to import entity:", error);
-                    var errorMsg = error.responseText || error.statusText || "Unknown error";
-                    deferred.reject(errorMsg);
-                });
-        } else {
-            // Fallback to jQuery ajax
-            $.ajax({
-                url: endpoint,
-                type: "POST",
-                data: JSON.stringify(payload),
-                contentType: "application/json",
-                dataType: "json"
-            })
+        // Use SHARED SearchApiService instead of direct API calls
+        var searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
+        
+        if (!searchApiService) {
+            console.error("❌ OdsImportService: Could not get SearchApiService");
+            deferred.reject("SearchApiService not available");
+            return deferred.promise();
+        }
+        
+        // Use centralized createOdsEntity method with aspects API
+        searchApiService.createOdsEntity(payload, entityType, "aspects")
             .done(function(created) {
-                console.log("Entity created in ODS:", created);
-                entity.odsId = created.id;
+                console.log("✅ OdsImportService: Entity created via shared service:", created);
+                
+                // Update original entity with ODS data
+                entity.odsId = created.id || created.odsId;
                 entity.source = "sharedo";
+                entity.data = created; // Store the full ODS entity
+                
                 deferred.resolve(entity);
             })
             .fail(function(error) {
-                console.error("Failed to import entity:", error);
-                var errorMsg = error.responseText || error.statusText || "Unknown error";
+                console.error("❌ OdsImportService: Entity creation failed:", error);
+                var errorMsg = error.responseText || error.statusText || error.error || "Unknown error";
                 deferred.reject(errorMsg);
             });
-        }
         
         return deferred.promise();
     };

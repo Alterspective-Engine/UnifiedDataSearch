@@ -771,152 +771,53 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
     
     console.log("Search mode:", self.options.searchMode);
     
-    // Search ODS if enabled (EXACTLY like blade)
+    // Search ODS using SHARED SearchApiService (single source of truth)
     if (self.options.searchMode === "unified" || self.options.searchMode === "odsOnly") {
-        console.log("Making ODS search with query:", query);
+        console.log("🔍 Widget making ODS search with query:", query);
+        console.log("🎯 Using SHARED SearchApiService (same as Blade)");
         
-        // Build search payload for ShareDo ODS _search endpoint (EXACTLY like blade)
-        var payload = {
-            startPage: 1,  // ShareDo uses 1-based pages
-            endPage: 1,
-            rowsPerPage: self.options.maxQuickResults || 10,  // Match blade default
-            searchString: query || "",
-            odsEntityTypes: [],
-            availability: {
-                isAvailable: null,
-                isOutOfOffice: null,
-                isNotAvailable: null
-            },
-            location: {
-                postcode: null,
-                range: 10
-            },
-            connection: {
-                systemName: null,
-                label: null,
-                otherOdsIds: []
-            },
-            competencies: [],
-            teams: [],
-            roles: [],
-            odsTypes: [],
-            wallManagement: false
-        };
+        // Get SearchApiService instance with defensive checks
+        var searchApiService = null;
         
-        // Add entity type filter (EXACTLY like blade)
-        var entityTypes = self.options.entityTypes || ["person", "organisation"];
-        if (entityTypes.length === 1 && entityTypes[0] === "person") {
-            payload.odsEntityTypes = ["person"];
-        } else if (entityTypes.length === 1 && entityTypes[0] === "organisation") {
-            payload.odsEntityTypes = ["organisation"];
-        } else {
-            // For "all" or multiple types, include both
-            payload.odsEntityTypes = ["person", "organisation"];
+        // Try the guaranteed initialization function first
+        if (Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.getSearchApiService) {
+            searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
         }
         
-        console.log("ODS API payload:", payload);
+        // Fallback to direct singleton access
+        if (!searchApiService && Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.searchApiService) {
+            searchApiService = Alt.UnifiedDataSearch.Services.searchApiService;
+            console.log("Widget: Using direct searchApiService singleton");
+        }
         
-        // Create deferred to handle fallback (EXACTLY like blade)
-        var odsDeferred = $.Deferred();
-        
-        // Try real API first using POST to _search endpoint (EXACTLY like blade)
-        var apiCall = window.$ajax && window.$ajax.post ? 
-            $ajax.post("/api/ods/_search", payload) :
-            $.ajax({
-                url: "/api/ods/_search",
-                method: "POST",
-                data: JSON.stringify(payload),
-                contentType: "application/json",
-                dataType: "json"
-            });
-        
-        apiCall
-            .done(function(data) {
-                console.log("ODS API raw response:", data);
-                
-                // Parse ShareDo response format (EXACTLY like blade)
-                var results = [];
-                
-                // ShareDo returns data in rows property with result as JSON string
-                if (data.rows && Array.isArray(data.rows)) {
-                    data.rows.forEach(function(row) {
-                        try {
-                            // Parse the JSON string in the result property
-                            var entity = JSON.parse(row.result);
-                            // Add the ID and entity type from the row
-                            entity.id = entity.id || row.id;
-                            entity.odsId = entity.id || row.id;
-                            entity.odsEntityType = entity.odsEntityType || row.odsEntityType;
-                            
-                            // Extract contact details if they're in aspectData
-                            if (entity.aspectData && entity.aspectData.ContactDetails) {
-                                var contacts = entity.aspectData.ContactDetails;
-                                // Find primary email
-                                var emailContact = contacts.find(function(c) {
-                                    return c.contactTypeSystemName === "email" && c.isPrimary;
-                                }) || contacts.find(function(c) {
-                                    return c.contactTypeSystemName === "email";
-                                });
-                                if (emailContact) {
-                                    entity.email = emailContact.contactValue;
-                                }
-                                
-                                // Find primary phone
-                                var phoneContact = contacts.find(function(c) {
-                                    return (c.contactTypeSystemName === "mobile" || c.contactTypeSystemName === "direct-line") && c.isPrimary;
-                                }) || contacts.find(function(c) {
-                                    return c.contactTypeSystemName === "mobile";
-                                }) || contacts.find(function(c) {
-                                    return c.contactTypeSystemName === "direct-line";
-                                });
-                                if (phoneContact) {
-                                    entity.phone = phoneContact.contactValue;
-                                }
-                            }
-                            
-                            // Extract location/address if available
-                            if (entity.locations && entity.locations.length > 0) {
-                                var location = entity.locations[0];
-                                entity.address = location.addressLine1;
-                                entity.suburb = location.town;
-                                entity.postcode = location.postCode;
-                                entity.state = location.county;
-                                entity.country = location.country;
-                            }
-                            
-                            results.push(entity);
-                        } catch(e) {
-                            console.error("Failed to parse ODS result row:", e, row);
-                        }
-                    });
-                } else if (data.results) {
-                    // Handle if results are already parsed
-                    results = data.results;
-                } else if (Array.isArray(data)) {
-                    // Handle if data is directly an array
-                    results = data;
-                }
-                
-                // Transform the response to match our expected format
-                var transformed = {
-                    success: true,
-                    results: results,
-                    totalResults: data.totalRows || data.totalCount || results.length,
-                    page: 0,
-                    hasMore: data.totalPages ? (data.endPage < data.totalPages) : false,
-                    totalPages: data.totalPages || 1
-                };
-                
-                console.log("ODS API transformed response:", transformed);
-                odsDeferred.resolve(transformed);
-            })
-            .fail(function(error) {
-                console.error("ODS API failed:", error);
-                odsDeferred.reject(error);
-            });
-        
-        searchPromises.push(odsDeferred.promise());
-        console.log("ODS search initiated");
+        if (!searchApiService) {
+            console.error("❌ Widget: Could not get SearchApiService");
+            searchPromises.push($.Deferred().resolve({
+                success: false,
+                results: [],
+                totalResults: 0,
+                error: "SearchApiService not available - services may not be loaded yet"
+            }).promise());
+        } else {
+            // Determine entity types for the shared service
+            var entityTypes = self.options.entityTypes || ["person", "organisation"];
+            
+            console.log("🚀 Widget calling shared SearchApiService.searchOds()");
+            console.log("   Query:", query);
+            console.log("   Entity types:", entityTypes);
+            console.log("   Page size:", self.options.maxQuickResults || 10);
+            
+            // Use the SAME shared service as the Blade
+            var odsPromise = searchApiService.searchOds(
+                query, 
+                entityTypes, 
+                self.options.maxQuickResults || 10, 
+                0  // Widget always uses page 0 for inline search
+            );
+            
+            searchPromises.push(odsPromise);
+            console.log("✅ Widget ODS search initiated via shared service");
+        }
     }
     
     // Search PMS if enabled (EXACTLY like blade - always use mock)
@@ -1310,7 +1211,7 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.addNewEntity = fu
 };
 
 /**
- * Load entity by ID (for initial binding)
+ * Load entity by ID (for initial binding) - NOW USES SHARED SERVICE
  */
 Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.loadEntityById = function(entityId) {
     var self = this;
@@ -1319,28 +1220,40 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.loadEntityById = 
         return;
     }
     
-    // Try to load from ODS
-    if (window.$ajax && window.$ajax.get) {
-        // Try person first
-        $ajax.get("/api/ods/person/" + entityId)
-            .done(function(person) {
-                person.odsType = "person";
-                person.source = "sharedo";
-                self.selectedEntity(person);
-            })
-            .fail(function() {
-                // Try organisation
-                $ajax.get("/api/ods/organisation/" + entityId)
-                    .done(function(org) {
-                        org.odsType = "organisation";
-                        org.source = "sharedo";
-                        self.selectedEntity(org);
-                    })
-                    .fail(function() {
-                        console.warn("Could not load entity with ID: " + entityId);
-                    });
-            });
+    console.log("🔍 Widget: Loading entity by ID using shared SearchApiService:", entityId);
+    
+    // Use SHARED SearchApiService with defensive checks
+    var searchApiService = null;
+    
+    // Try the guaranteed initialization function first
+    if (Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.getSearchApiService) {
+        searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
     }
+    
+    // Fallback to direct singleton access
+    if (!searchApiService && Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.searchApiService) {
+        searchApiService = Alt.UnifiedDataSearch.Services.searchApiService;
+        console.log("Widget loadEntityById: Using direct searchApiService singleton");
+    }
+    
+    if (!searchApiService) {
+        console.error("❌ Widget: Could not get SearchApiService for entity loading - services may not be loaded yet");
+        return;
+    }
+    
+    // Use centralized loadEntityById method
+    searchApiService.loadEntityById(entityId)
+        .done(function(entity) {
+            if (entity) {
+                console.log("✅ Widget: Entity loaded via shared service:", entity);
+                self.selectedEntity(entity);
+            } else {
+                console.warn("⚠️ Widget: No entity found with ID:", entityId);
+            }
+        })
+        .fail(function(error) {
+            console.error("❌ Widget: Failed to load entity:", entityId, error);
+        });
 };
 
 /**
@@ -1614,23 +1527,50 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.openSearchBlade =
 };
 
 /**
- * Initialize services for inline search
+ * Initialize services for inline search - UNIFIED with Blade
  */
 Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.initializeServices = function() {
     var self = this;
     
+    console.log("🔧 Widget: Initializing services...");
+    
+    // Defensive initialization - check if service functions are available
+    if (Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.getSearchApiService) {
+        // Ensure SearchApiService is available (same as Blade)
+        self.searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
+        
+        if (self.searchApiService) {
+            console.log("✅ Widget: SearchApiService initialized (shared with Blade)");
+        } else {
+            console.warn("⚠️ Widget: getSearchApiService returned null");
+        }
+    } else {
+        console.warn("⚠️ Widget: getSearchApiService function not available yet - services may not be loaded");
+        
+        // Fallback: try to get existing service directly
+        if (Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.searchApiService) {
+            self.searchApiService = Alt.UnifiedDataSearch.Services.searchApiService;
+            console.log("✅ Widget: Using existing searchApiService singleton");
+        } else {
+            console.warn("⚠️ Widget: No SearchApiService available - search may not work");
+        }
+    }
+    
     // Use the singleton UnifiedSearchService if available
     if (Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.unifiedSearchService) {
         self.searchService = Alt.UnifiedDataSearch.Services.unifiedSearchService;
-        console.log("Using UnifiedSearchService singleton for inline search");
+        console.log("✅ Widget: Using UnifiedSearchService singleton");
     } else {
-        console.warn("UnifiedSearchService not available, will use direct API calls");
+        console.warn("⚠️ Widget: UnifiedSearchService not available");
     }
     
     // Use singleton import service if available
     if (Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.odsImportService) {
         self.importService = Alt.UnifiedDataSearch.Services.odsImportService;
+        console.log("✅ Widget: OdsImportService available");
     }
+    
+    console.log("🎯 Widget services initialized. Using SAME shared services as Blade.");
 };
 
 /**
@@ -1701,88 +1641,52 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.performInlineSear
  * Select inline search result
  */
 Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.selectInlineResult = function(result) {
-    // CRITICAL FIX: The context (this) is being overwritten somewhere,
-    // so we need to get the widget instance from the parent scope
-    var widget = this;
-    
-    // If 'this' contains result data instead of widget instance, we need to find the widget
-    if (this && this.id && this.source && this.displayName) {
-        // 'this' is actually the result object, not the widget!
-        // We need to find the widget instance from the binding context
-        console.error("CRITICAL BUG: selectInlineResult called with wrong context!");
-        console.log("'this' contains result data:", this);
-        console.log("Expected widget, got result. Attempting to recover...");
-        
-        // Try to find the widget from the DOM element or binding context
-        // This is a fallback - the real fix is in the HTML binding
-        widget = null;
-        
-        // Try to get widget from jQuery data or other sources
-        var elements = $('.Alt-UnifiedDataSearch-Widgets-UnifiedOdsEntityPicker');
-        if (elements.length > 0) {
-            var element = elements[0];
-            widget = ko.dataFor(element);
-            console.log("Recovered widget from DOM:", widget);
-        }
-        
-        if (!widget) {
-            console.error("Could not recover widget instance. Selection will fail.");
-            return false;
-        }
-        
-        // In this case, 'this' is actually the result, so use it as the result
-        result = this;
-    }
+    var self = this;
     
     console.log("selectInlineResult called with result:", result);
-    console.log("Widget instance:", widget);
     
     // Prevent blur from closing the search
-    if (widget._preventBlur !== undefined) {
-        widget._preventBlur = true;
-    }
+    self._preventBlur = true;
     
     // Ensure we have the data object
     var entityData = result.data || result;
     
-    if (widget.options && widget.options.mode === "auto" && result.source === "pms") {
+    if (self.options && self.options.mode === "auto" && result.source === "pms") {
         // Auto-import PMS record to ShareDo
-        if (widget.importService && widget.importService.importEntity) {
-            if (widget.isSearching) widget.isSearching(true);
+        if (self.importService && self.importService.importEntity) {
+            if (self.isSearching) self.isSearching(true);
             
-            widget.importService.importEntity(result)
+            self.importService.importEntity(result)
                 .done(function(imported) {
                     console.log("Entity imported:", imported);
-                    widget.setSelectedEntity(imported);
-                    widget.closeInlineSearch();
+                    self.setSelectedEntity(imported);
+                    self.closeInlineSearch();
                 })
                 .fail(function(error) {
                     console.error("Failed to import entity:", error);
                     alert("Failed to import entity: " + (error.message || error));
-                    if (widget._preventBlur !== undefined) widget._preventBlur = false;
-                    if (widget.isSearching) widget.isSearching(false);
+                    self._preventBlur = false;
+                    if (self.isSearching) self.isSearching(false);
                 });
         } else {
             // No import service available, just select the PMS entity directly
             console.warn("Import service not available, selecting PMS entity directly");
-            widget.setSelectedEntity(entityData);
-            widget.closeInlineSearch();
+            self.setSelectedEntity(entityData);
+            self.closeInlineSearch();
         }
     } else {
         // Direct selection for ShareDo entities
         console.log("Selecting ShareDo entity directly");
-        widget.setSelectedEntity(entityData);
-        widget.closeInlineSearch();
+        self.setSelectedEntity(entityData);
+        self.closeInlineSearch();
     }
     
     // Reset prevent blur after a delay
     setTimeout(function() {
-        if (widget._preventBlur !== undefined) {
-            widget._preventBlur = false;
-        }
-    }, 500);
+        self._preventBlur = false;
+    }, 100);
     
-    return true;  // Allow event to bubble
+    return false;  // Prevent event bubbling
 };
 
 /**
@@ -1819,8 +1723,8 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.setSelectedEntity
             self.selectedEntities(current);
         }
     } else {
-        // For single selection, update the observable array
-        self.selectedEntities([normalizedEntity]);
+        // For single selection, directly write to the computed observable
+        self.selectedEntity(normalizedEntity);
     }
     
     // Update host model if in aspect mode

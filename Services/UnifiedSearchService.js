@@ -26,15 +26,8 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
      * Ensures services are available before use
      */
     self.initializeServices = function() {
-        // Initialize MockPmsService
-        if (!self.mockPmsService) {
-            if (Alt.UnifiedDataSearch.Services.mockPmsService) {
-                self.mockPmsService = Alt.UnifiedDataSearch.Services.mockPmsService;
-            } else if (Alt.UnifiedDataSearch.Services.MockPmsService) {
-                self.mockPmsService = new Alt.UnifiedDataSearch.Services.MockPmsService();
-                Alt.UnifiedDataSearch.Services.mockPmsService = self.mockPmsService;
-            }
-        }
+        // MockPmsService removed - PMS functionality not available
+        self.mockPmsService = null;
         
         // Initialize ResultMergerService
         if (!self.resultMergerService) {
@@ -65,7 +58,7 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
      * @param {string} options.entityType - "all", "person", or "organisation"
      * @param {number} options.page - Page number (0-based)
      * @param {number} options.pageSize - Results per page
-     * @param {boolean} options.useMockPms - Use mock PMS service
+     * @param {boolean} options.useMockPms - DEPRECATED: Mock PMS removed
      * @param {boolean} options.useMockOds - Use mock ODS service (for testing)
      * @param {number} options.timeout - PMS timeout in milliseconds
      * @param {Function} options.onOdsComplete - Callback when ODS search completes
@@ -86,7 +79,7 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
             entityType: "all",
             page: 0,
             pageSize: 10,
-            useMockPms: true,  // Default to mock PMS
+            useMockPms: false, // DEPRECATED: Mock PMS removed
             useMockOds: false, // Default to real ODS API
             timeout: 5000,
             onOdsComplete: null,
@@ -191,32 +184,17 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
     };
     
     /**
-     * Search mock ODS (for testing)
+     * Search mock ODS (DEPRECATED - Mock services removed)
      * @private
      */
     self.searchMockOds = function(config) {
-        if (!self.mockPmsService) {
-            return $.Deferred().resolve({ results: [] }).promise();
-        }
-        
-        var type = config.entityType === "person" ? "persons" : 
-                   config.entityType === "organisation" ? "organisations" : "all";
-        
-        if (type === "all") {
-            // Search both types and merge
-            var personsPromise = self.mockPmsService.search("persons", config.query, config.page);
-            var orgsPromise = self.mockPmsService.search("organisations", config.query, config.page);
-            
-            return $.when(personsPromise, orgsPromise).then(function(persons, orgs) {
-                return {
-                    results: [].concat(persons.results || [], orgs.results || []),
-                    totalResults: (persons.totalResults || 0) + (orgs.totalResults || 0),
-                    success: true
-                };
-            });
-        }
-        
-        return self.mockPmsService.search(type, config.query, config.page);
+        console.warn("searchMockOds: Mock services have been removed");
+        return $.Deferred().resolve({ 
+            results: [], 
+            totalResults: 0, 
+            success: false,
+            error: "Mock services removed"
+        }).promise();
     };
     
     /**
@@ -247,32 +225,17 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
     };
     
     /**
-     * Search PMS (mock or real)
+     * Search PMS (DEPRECATED - Mock PMS removed, no real PMS integration yet)
      * @private
      */
     self.searchPms = function(config) {
-        // For now, always use mock PMS
-        // In future, this would check for real PMS provider
-        if (!self.mockPmsService) {
-            return $.Deferred().resolve({ results: [] }).promise();
-        }
-        
-        // Handle "all" entity type
-        if (config.entityType === "all") {
-            var personsPromise = self.mockPmsService.search("persons", config.query, config.page);
-            var orgsPromise = self.mockPmsService.search("organisations", config.query, config.page);
-            
-            return $.when(personsPromise, orgsPromise).then(function(personsResult, orgsResult) {
-                return {
-                    results: [].concat(personsResult.results || [], orgsResult.results || []),
-                    totalResults: (personsResult.totalResults || 0) + (orgsResult.totalResults || 0),
-                    success: true
-                };
-            });
-        } else {
-            var type = config.entityType === "person" ? "persons" : "organisations";
-            return self.mockPmsService.search(type, config.query, config.page);
-        }
+        console.warn("searchPms: Mock PMS removed, no real PMS integration available yet");
+        return $.Deferred().resolve({ 
+            results: [], 
+            totalResults: 0, 
+            success: false,
+            error: "PMS search not available - mock services removed"
+        }).promise();
     };
     
     /**

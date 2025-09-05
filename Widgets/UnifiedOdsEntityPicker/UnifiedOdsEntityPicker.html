@@ -112,7 +112,7 @@
                         <div class="results-list">
                             <!-- ko foreach: { data: inlineSearchResults, as: 'result' } -->
                             <div class="result-item" 
-                                 data-bind="click: function() { $parent.selectInlineResult(result); },
+                                 data-bind="click: function() { $parent.selectInlineResult.call($parent, result); },
                                             css: { 
                                                 'selected': $parent.selectedResultIndex() === $index(),
                                                 'has-match': result.source === 'matched'

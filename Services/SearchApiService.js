@@ -302,10 +302,151 @@ Alt.UnifiedDataSearch.Services.SearchApiService = function() {
                      (entity.firstName || entity.lastName ? "person" : "organisation")
         };
     };
+    
+    /**
+     * Load ODS entity by ID - CENTRALIZED
+     * Consolidates the duplicated loadEntityById logic from Widget
+     * 
+     * @param {String} entityId - ODS entity ID
+     * @returns {jQuery.Deferred} Promise resolving to entity or null
+     */
+    self.loadEntityById = function(entityId) {
+        var deferred = $.Deferred();
+        
+        if (!entityId) {
+            deferred.resolve(null);
+            return deferred.promise();
+        }
+        
+        if (!window.$ajax) {
+            console.error("SearchApiService: $ajax not available for entity loading");
+            deferred.resolve(null);
+            return deferred.promise();
+        }
+        
+        console.log("SearchApiService: Loading entity by ID:", entityId);
+        
+        // Try person first
+        $ajax.get("/api/ods/person/" + entityId)
+            .done(function(person) {
+                console.log("SearchApiService: Loaded person:", person);
+                person.odsType = "person";
+                person.source = "sharedo";
+                person.displayName = self.getDisplayName(person);
+                person.icon = self.getEntityIcon(person);
+                deferred.resolve(person);
+            })
+            .fail(function() {
+                // Try organisation
+                $ajax.get("/api/ods/organisation/" + entityId)
+                    .done(function(org) {
+                        console.log("SearchApiService: Loaded organisation:", org);
+                        org.odsType = "organisation";
+                        org.source = "sharedo";
+                        org.displayName = self.getDisplayName(org);
+                        org.icon = self.getEntityIcon(org);
+                        deferred.resolve(org);
+                    })
+                    .fail(function(error) {
+                        console.warn("SearchApiService: Could not load entity with ID:", entityId, error);
+                        deferred.resolve(null);
+                    });
+            });
+        
+        return deferred.promise();
+    };
+    
+    /**
+     * Create ODS entity - CENTRALIZED
+     * Consolidates entity creation logic from Blade and OdsImportService
+     * 
+     * @param {Object} entityData - Entity data to create
+     * @param {String} entityType - "person" or "organisation"
+     * @param {String} apiMode - "simple" (basic ODS) or "aspects" (full aspect API)
+     * @returns {jQuery.Deferred} Promise resolving to created entity
+     */
+    self.createOdsEntity = function(entityData, entityType, apiMode) {
+        var deferred = $.Deferred();
+        
+        if (!window.$ajax) {
+            console.error("SearchApiService: $ajax not available for entity creation");
+            deferred.reject({ error: "$ajax service not available" });
+            return deferred.promise();
+        }
+        
+        // Support both simple ODS and aspects API endpoints
+        var endpoint;
+        if (apiMode === "aspects") {
+            // Aspects API uses plural form
+            endpoint = entityType === "person" ? 
+                "/api/aspects/ods/people/" :
+                "/api/aspects/ods/organisations/";
+        } else {
+            // Simple ODS API uses singular form
+            endpoint = "/api/ods/" + entityType;
+        }
+        
+        console.log("SearchApiService: Creating ODS entity");
+        console.log("  Type:", entityType);
+        console.log("  API Mode:", apiMode || "simple");
+        console.log("  Endpoint:", endpoint);
+        console.log("  Data:", entityData);
+        
+        var apiCall = $ajax.post(endpoint, entityData);
+        
+        apiCall
+            .done(function(created) {
+                console.log("SearchApiService: Entity created successfully:", created);
+                created.odsType = entityType;
+                created.source = "sharedo";
+                created.displayName = self.getDisplayName(created);
+                created.icon = self.getEntityIcon(created);
+                deferred.resolve(created);
+            })
+            .fail(function(error) {
+                console.error("SearchApiService: Entity creation failed:", error);
+                deferred.reject(error);
+            });
+        
+        return deferred.promise();
+    };
 };
 
-// Create singleton instance
+/**
+ * Guaranteed Service Initialization
+ * Ensures SearchApiService is always available for both Widget and Blade
+ */
+Alt.UnifiedDataSearch.Services.initializeSearchApiService = function() {
+    if (!Alt.UnifiedDataSearch.Services.searchApiService) {
+        console.log("🔧 Initializing SearchApiService singleton...");
+        Alt.UnifiedDataSearch.Services.searchApiService = 
+            new Alt.UnifiedDataSearch.Services.SearchApiService();
+        console.log("✅ SearchApiService singleton created");
+    }
+    return Alt.UnifiedDataSearch.Services.searchApiService;
+};
+
+/**
+ * Get SearchApiService instance with guaranteed initialization
+ * This is the SINGLE entry point both Widget and Blade should use
+ * 
+ * @returns {SearchApiService} Guaranteed service instance
+ */
+Alt.UnifiedDataSearch.Services.getSearchApiService = function() {
+    // Ensure the service namespace exists
+    if (!Alt.UnifiedDataSearch.Services.initializeSearchApiService) {
+        console.warn("initializeSearchApiService not available, creating manually");
+        if (!Alt.UnifiedDataSearch.Services.searchApiService && Alt.UnifiedDataSearch.Services.SearchApiService) {
+            Alt.UnifiedDataSearch.Services.searchApiService = 
+                new Alt.UnifiedDataSearch.Services.SearchApiService();
+        }
+        return Alt.UnifiedDataSearch.Services.searchApiService;
+    }
+    return Alt.UnifiedDataSearch.Services.initializeSearchApiService();
+};
+
+// Initialize singleton instance immediately
 Alt.UnifiedDataSearch.Services.searchApiService = 
     new Alt.UnifiedDataSearch.Services.SearchApiService();
 
-console.log("SearchApiService initialized:", Alt.UnifiedDataSearch.Services.searchApiService);
+console.log("✅ SearchApiService initialized as singleton:", !!Alt.UnifiedDataSearch.Services.searchApiService);

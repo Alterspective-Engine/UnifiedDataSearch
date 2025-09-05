@@ -13,7 +13,7 @@
     "modal": false,
     "scripts": [
         "/_ideFiles/Alt/UnifiedDataSearch/Helpers/namespace.js",
-        "/_ideFiles/Alt/UnifiedDataSearch/Services/MockPmsService.js",
+        "/_ideFiles/Alt/UnifiedDataSearch/Services/SearchApiService.js",
         "/_ideFiles/Alt/UnifiedDataSearch/Services/ResultMergerService.js",
         "/_ideFiles/Alt/UnifiedDataSearch/Services/ConflictDetectorService.js",
         "/_ideFiles/Alt/UnifiedDataSearch/Services/UnifiedSearchService.js",

@@ -180,19 +180,30 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.createRibbonBar = fun
     return ribbon;
 };
 
-// Initialize services
+// Initialize services with improved defensive initialization
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.buildServices = function() {
     var self = this;
     
+    console.log("Blade: buildServices() called");
+    
+    // **CRITICAL FIX:** Ensure SearchApiService is initialized first
+    self.initializeSearchApiService();
+    
     // Initialize shared search service with configuration
-    self.searchService = new Alt.UnifiedDataSearch.Services.UnifiedSearchService({
-        pmsTimeout: self.options.pmsTimeout || 5000,
-        labels: self.options.labels || {
-            sharedo: "ShareDo",
-            pms: "PMS",
-            matched: "Matched"
+    if (Alt.UnifiedDataSearch.Services.UnifiedSearchService) {
+        try {
+            self.searchService = new Alt.UnifiedDataSearch.Services.UnifiedSearchService({
+                pmsTimeout: self.options.pmsTimeout || 5000,
+                labels: self.options.labels || {
+                    sharedo: "ShareDo",
+                    pms: "PMS",
+                    matched: "Matched"
+                }
+            });
+        } catch(e) {
+            console.warn("Could not initialize UnifiedSearchService:", e);
         }
-    });
+    }
     
     // Use singleton import service
     self.importService = Alt.UnifiedDataSearch.Services.odsImportService;
@@ -203,7 +214,11 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.buildServices = funct
     if (!Alt.UnifiedDataSearch.Services.resultMergerService) {
         console.warn("ResultMergerService not found, creating new instance");
         if (Alt.UnifiedDataSearch.Services.ResultMergerService) {
-            Alt.UnifiedDataSearch.Services.resultMergerService = new Alt.UnifiedDataSearch.Services.ResultMergerService();
+            try {
+                Alt.UnifiedDataSearch.Services.resultMergerService = new Alt.UnifiedDataSearch.Services.ResultMergerService();
+            } catch(e) {
+                console.warn("Could not create ResultMergerService:", e);
+            }
         }
     }
     self.resultMergerService = Alt.UnifiedDataSearch.Services.resultMergerService;
@@ -212,7 +227,11 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.buildServices = funct
     if (!Alt.UnifiedDataSearch.Services.conflictDetectorService) {
         console.warn("ConflictDetectorService not found, creating new instance");
         if (Alt.UnifiedDataSearch.Services.ConflictDetectorService) {
-            Alt.UnifiedDataSearch.Services.conflictDetectorService = new Alt.UnifiedDataSearch.Services.ConflictDetectorService();
+            try {
+                Alt.UnifiedDataSearch.Services.conflictDetectorService = new Alt.UnifiedDataSearch.Services.ConflictDetectorService();
+            } catch(e) {
+                console.warn("Could not create ConflictDetectorService:", e);
+            }
         }
     }
     self.conflictDetectorService = Alt.UnifiedDataSearch.Services.conflictDetectorService;
@@ -237,6 +256,37 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.buildServices = funct
                 console.warn("Could not initialize AddParticipantService:", e);
             }
         }
+    }
+    
+    console.log("Blade: buildServices() complete. SearchApiService available:", !!Alt.UnifiedDataSearch.Services.searchApiService);
+};
+
+// **NEW METHOD:** Initialize SearchApiService with defensive loading
+Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.initializeSearchApiService = function() {
+    var self = this;
+    
+    console.log("Blade: Initializing SearchApiService...");
+    console.log("Current searchApiService:", Alt.UnifiedDataSearch.Services.searchApiService);
+    console.log("SearchApiService constructor available:", !!Alt.UnifiedDataSearch.Services.SearchApiService);
+    
+    // Check if singleton already exists
+    if (Alt.UnifiedDataSearch.Services.searchApiService) {
+        console.log("SearchApiService singleton already exists");
+        return;
+    }
+    
+    // Try to create singleton if constructor is available
+    if (Alt.UnifiedDataSearch.Services.SearchApiService) {
+        try {
+            console.log("Creating SearchApiService singleton...");
+            Alt.UnifiedDataSearch.Services.searchApiService = 
+                new Alt.UnifiedDataSearch.Services.SearchApiService();
+            console.log("SearchApiService singleton created successfully");
+        } catch(e) {
+            console.error("Failed to create SearchApiService singleton:", e);
+        }
+    } else {
+        console.warn("SearchApiService constructor not available - service file may not be loaded");
     }
 };
 
@@ -269,7 +319,7 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.loadAndBind = functio
     console.log("%c🚀 UnifiedDataSearch Blade Loaded", "color: #667eea; font-weight: bold; font-size: 16px");
     console.log("Configuration:", self.options);
     console.log("Mode:", self.options.mode, "| Entity Types:", self.options.entityTypes);
-    console.log("Using Mock PMS:", self.options.useMockPms);
+    console.log("Mock PMS services have been removed - ODS only search available");
     
     // Subscribe to search query changes
     self.searchQuery.subscribe(function(newValue) {
@@ -500,20 +550,23 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.executeSearch = funct
         });
 };
 
-// Search ODS - Always use real ShareDo API
+// Search ODS - ALWAYS use shared SearchApiService (single source of truth)
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchOds = function(query, page) {
     var self = this;
     
-    console.log("Blade.searchOds called with query:", query, "page:", page);
+    console.log("🔍 Blade.searchOds called with query:", query, "page:", page);
+    console.log("🎯 Using SHARED SearchApiService (single source of truth)");
     
-    // Ensure SearchApiService is available
-    if (!Alt.UnifiedDataSearch.Services.searchApiService) {
-        console.error("SearchApiService not available for ODS search");
+    // Get guaranteed SearchApiService instance (no more fallback!)
+    var searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
+    
+    if (!searchApiService) {
+        console.error("❌ CRITICAL: Could not initialize SearchApiService");
         return $.Deferred().resolve({
             success: false,
             results: [],
             totalResults: 0,
-            error: "SearchApiService not available"
+            error: "SearchApiService initialization failed"
         }).promise();
     }
     
@@ -528,9 +581,14 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.searchOds = function(
         entityTypes = ["person", "organisation"];
     }
     
-    // Use the centralized SearchApiService
-    return Alt.UnifiedDataSearch.Services.searchApiService
-        .searchOds(query, entityTypes, self.options.rowsPerPage, page);
+    console.log("🚀 Blade calling shared SearchApiService.searchOds()");
+    console.log("   Query:", query);
+    console.log("   Entity types:", entityTypes);
+    console.log("   Page size:", self.options.rowsPerPage);
+    console.log("   Page:", page);
+    
+    // Use the centralized SearchApiService - SINGLE SOURCE OF TRUTH
+    return searchApiService.searchOds(query, entityTypes, self.options.rowsPerPage, page);
 };
 
 
@@ -647,9 +705,9 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.selectEntity = functi
         
         // Handle based on source
         if (entity.source === "pms") {
-            console.log("%c📦 PMS ENTITY - Auto-creating in ODS", "color: #3730a3; font-weight: bold");
-            // Create the PMS entity in ODS and return the new ODS entity
-            self.createPmsEntityInOds(entity);
+            console.log("%c📦 PMS ENTITY - Using SHARED SERVICE to import to ODS", "color: #3730a3; font-weight: bold");
+            // Use shared service instead of duplicated direct API logic
+            self.importPmsEntityWithSharedService(entity);
         } else if (entity.source === "matched" && entity.hasConflicts) {
             console.log("%c⚡ MATCHED WITH CONFLICTS - Handling conflicts", "color: #f59e0b; font-weight: bold");
             // Handle conflicts
@@ -727,8 +785,17 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.convertDateToShareDoF
 };
 
 // Create PMS entity in ODS
+// DEPRECATED: This method contains duplicated API logic
+// Use importPmsEntityWithSharedService() instead, which uses the centralized SearchApiService
+// This method is kept for backward compatibility but should not be used
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.createPmsEntityInOds = function(entity) {
+    console.warn("⚠️ DEPRECATED: createPmsEntityInOds contains duplicated API logic. Use importPmsEntityWithSharedService() instead.");
     var self = this;
+    
+    // Redirect to shared service method
+    return self.importPmsEntityWithSharedService(entity);
+    
+    /* ORIGINAL DUPLICATED CODE COMMENTED OUT - USE SHARED SERVICE INSTEAD
     
     console.log("%c📤 CREATING ODS ENTITY FROM PMS", "color: #22c55e; font-weight: bold");
     console.log("PMS Entity:", entity);
@@ -957,6 +1024,7 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.createPmsEntityInOds 
             alert(errorMsg);
         });
 };
+*/
 
 // Check settings and add PMS entity (DEPRECATED - keeping for backward compatibility)
 Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.checkSettingsAndAddPmsEntity = function(entity) {
