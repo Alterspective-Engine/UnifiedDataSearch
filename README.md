@@ -6,18 +6,18 @@ A complete frontend-only solution for searching across ShareDo ODS and external 
 
 ## 🎯 Overview
 
-UnifiedDataSearch provides a seamless search experience across multiple data sources in ShareDo environments, allowing users to search both internal ODS (Organisational Data Store) and external PMS systems simultaneously. Results are intelligently merged, duplicates are identified, and data conflicts are highlighted.
+UnifiedDataSearch is a **production-ready ShareDo module** providing professional ODS search capabilities with clean architecture and zero code duplication. After major cleanup and simplification, it offers a streamlined, enterprise-grade solution for ShareDo entity management.
 
-## ✨ Key Features
+## ✨ Key Features (Clean Architecture)
 
-- **🔍 Unified Search**: Single search interface for both ODS and PMS data
-- **🔄 Intelligent Merging**: Automatic matching and deduplication of entities
+- **🔍 ODS Search**: Professional ShareDo ODS search with advanced filtering
+- **🔄 Intelligent Processing**: Entity matching, conflict detection, and data enrichment  
 - **⚡ No Backend Required**: 100% frontend solution using existing ShareDo APIs
-- **🎨 Dual Display Modes**: Simple Mode (recommended) or Component Mode
-- **📊 Auto-Import**: Automatically create ODS entities from PMS records
-- **⚠️ Conflict Detection**: Highlights data discrepancies between systems
-- **🧪 Mock PMS Service**: Built-in demo/development mode
-- **📱 Responsive Design**: Works on all screen sizes
+- **🎯 True Unification**: Both Widget and Blade use identical search logic (zero code duplication)
+- **📊 Auto-Import**: Import external entities to ShareDo ODS with proper formatting
+- **🏗️ Clean Architecture**: Service-oriented design with guaranteed initialization
+- **📱 Responsive Design**: Works on all screen sizes with modern UI patterns
+- **🧪 Production Ready**: Comprehensive error handling and defensive programming
 
 ## 🚀 Quick Start
 
@@ -49,9 +49,11 @@ UnifiedDataSearch provides a seamless search experience across multiple data sou
    ```json
    {
        "id": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker",
-       "useShareDoComponent": false,
        "label": "Select Client",
-       "mode": "auto"
+       "entityTypes": ["person", "organisation"],
+       "searchMode": "odsOnly",
+       "allowInlineSearch": true,
+       "mode": "select"
    }
    ```
 
@@ -59,32 +61,47 @@ UnifiedDataSearch provides a seamless search experience across multiple data sou
    ```javascript
    $ui.stacks.openPanel("Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch", {
        mode: "auto",
-       entityTypes: ["person", "organisation"]
+       entityTypes: ["person", "organisation"],
+       allowAddNew: true
    });
    ```
 
-## 📖 Documentation
+## 📖 Documentation (Simplified)
 
-- **[Complete Documentation](./DOCUMENTATION.md)** - Full technical reference
-- **[Quick Implementation Guide](./QUICK_IMPLEMENTATION_GUIDE.md)** - Get started in 5 minutes
-- **[Implementation Details (CLAUDE.md)](./CLAUDE.md)** - Detailed implementation notes
-- **[Component Research](./SHAREDO_COMPONENT_INTEGRATION_RESEARCH.md)** - ShareDo component analysis
+- **[CLAUDE.md](./CLAUDE.md)** - Implementation guide for developers
+- **[Technical Reference](./docs/README.md)** - Complete technical documentation
+- **[Examples](./Examples/)** - Configuration examples and usage patterns
 
-## 🏗️ Architecture
+**Historical documentation archived to `_Archive/docs/` for reference.**
+
+## 🏗️ Clean Architecture (Post-Cleanup)
 
 ```
 UnifiedDataSearch/
-├── Blades/                 # Search interface blade
-│   └── UnifiedOdsPmsSearch/
-├── Widgets/                # Form integration widgets
-│   ├── UnifiedOdsEntityPicker/
-│   └── UnifiedOdsEntityPickerDesigner/
-├── Services/               # Core business logic
-│   ├── MockPmsService.js
-│   ├── ResultMergerService.js
-│   └── ConflictDetectorService.js
-├── Helpers/                # Utility functions
-└── Examples/               # Configuration examples
+├── Services/               # Core business logic (4 services)
+│   ├── SearchApiService.js     # ODS API integration
+│   ├── UnifiedSearchService.js # Search orchestration  
+│   ├── ResultMergerService.js  # Result processing
+│   └── OdsImportService.js     # Entity import
+├── Blades/                 # Search interface
+│   └── UnifiedOdsPmsSearch/    # Advanced search blade
+├── Widgets/                # Form integration
+│   ├── UnifiedOdsEntityPicker/      # Entity picker widget
+│   └── UnifiedOdsEntityPickerDesigner/ # Widget designer
+├── Helpers/                # Essential utilities (1 file)
+│   └── namespace.js            # Namespace management only
+├── Examples/               # Clean configuration examples
+│   ├── aspect-config-simple.json      # Basic widget config
+│   ├── aspect-config-multiple.json    # Multi-select config
+│   ├── formio-integration.json        # FormIO integration
+│   └── blade-config-search.json       # Blade configuration
+├── tests/                  # Architecture validation
+├── docs/                   # Unified documentation
+└── _Archive/               # Archived unused components
+    ├── docs/               # Historical documentation (49 files)
+    ├── services/           # Archived services
+    ├── helpers/            # Archived helper utilities
+    └── components/         # Unused UI components
 ```
 
 ## 🎨 Display Modes

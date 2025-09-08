@@ -1,0 +1,24 @@
+{
+    "comment": "Blade configuration for unified search interface (Clean Architecture)",
+    "bladeName": "Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch",
+    "configuration": {
+        "mode": "auto",
+        "entityTypes": ["person", "organisation"],
+        "allowAddNew": true,
+        "rowsPerPage": 20,
+        "pmsTimeout": 5000,
+        "conflictResolutionMode": "prompt",
+        "searchMode": "odsOnly",
+        "sharedoId": null,
+        "parentSharedoId": null,
+        "sharedoTypeSystemName": null,
+        "addNewParticipantsToSharedoId": null,
+        "forRoleSystemName": "participant",
+        "tryAutoAddParticipant": false,
+        "promptOnPmsAdd": true
+    },
+    "usage": {
+        "simple": "$ui.stacks.openPanel('Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch', { mode: 'select', entityTypes: ['person'] });",
+        "workItem": "$ui.stacks.openPanel('Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch', { mode: 'auto', entityTypes: ['person', 'organisation'], sharedoId: workItemId, addNewParticipantsToSharedoId: workItemId });"
+    }
+}

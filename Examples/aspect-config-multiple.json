@@ -1,5 +1,5 @@
 {
-    "comment": "Aspect widget configuration for multiple participant selection",
+    "comment": "Aspect widget configuration for multiple participant selection (Clean Architecture)",
     "widgetType": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker",
     "configuration": {
         "_host": {
@@ -12,20 +12,21 @@
         "required": false,
         "allowMultiple": true,
         "allowClear": true,
+        "allowInlineSearch": true,
         "mode": "auto",
         "fieldName": "participants",
         "returnField": "entity",
         "entityTypes": ["person", "organisation"],
-        "searchMode": "unified",
-        "useMockPms": true,
-        "useMockOds": false,
+        "searchMode": "odsOnly",
+        "maxQuickResults": 10,
+        "displayFields": ["email", "phone"],
         "sharedoId": "@workItemId",
         "sharedoTypeSystemName": "@workItemType",
         "forRoleSystemName": "participant",
+        "addNewParticipantsToSharedoId": "@workItemId",
         "showIcon": true,
         "showEmail": true,
         "showPhone": true,
-        "showSource": true,
-        "showAddress": false
+        "showSourceBadge": false
     }
 }

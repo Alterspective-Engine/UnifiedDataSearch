@@ -1,5 +1,5 @@
 {
-    "comment": "FormIO component configuration for UnifiedOdsEntityPicker",
+    "comment": "FormIO component configuration for UnifiedOdsEntityPicker (Clean Architecture)",
     "type": "htmlelement",
     "label": "Client Selection",
     "key": "clientSelection",
@@ -9,18 +9,21 @@
     "properties": {
         "componentConfig": {
             "label": "Select Client",
-            "placeholder": "Search for client in ODS and PMS...",
+            "placeholder": "Search ShareDo ODS for client...",
             "required": true,
             "allowMultiple": false,
-            "mode": "auto",
+            "allowInlineSearch": true,
+            "mode": "select",
             "fieldName": "selectedClientId",
             "returnField": "odsId",
             "entityTypes": ["person", "organisation"],
-            "searchMode": "unified",
-            "useMockPms": true,
+            "searchMode": "odsOnly",
+            "maxQuickResults": 5,
+            "displayFields": ["email"],
+            "showIcon": true,
             "showEmail": true,
             "showPhone": false,
-            "showSource": true
+            "showSourceBadge": false
         }
     },
     "validate": {

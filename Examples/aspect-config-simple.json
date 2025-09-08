@@ -1,5 +1,5 @@
 {
-    "comment": "Simple aspect widget configuration for single entity selection",
+    "comment": "Simple aspect widget configuration for single entity selection (Clean Architecture)",
     "widgetType": "Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker",
     "configuration": {
         "_host": {
@@ -12,17 +12,17 @@
         "required": true,
         "allowMultiple": false,
         "allowClear": true,
-        "mode": "auto",
+        "allowInlineSearch": true,
+        "mode": "select",
         "fieldName": "clientOdsId",
         "returnField": "odsId",
         "entityTypes": ["person", "organisation"],
-        "searchMode": "unified",
-        "useMockPms": true,
-        "useMockOds": false,
+        "searchMode": "odsOnly",
+        "maxQuickResults": 5,
+        "displayFields": ["email"],
         "showIcon": true,
         "showEmail": true,
         "showPhone": false,
-        "showSource": true,
-        "showAddress": false
+        "showSourceBadge": false
     }
 }
