@@ -86,13 +86,13 @@ Alt.UnifiedDataSearch.Services.SearchApiService = function() {
     };
     
     /**
-     * Build ODS search payload
+     * Build ODS search payload (updated to match OpenAPI spec)
      * Centralizes the payload construction logic
      * 
      * @param {String} query - Search query
      * @param {Array} entityTypes - Entity types to search
      * @param {Number} pageSize - Results per page
-     * @param {Number} page - Page number
+     * @param {Number} page - Page number (1-based for ShareDo API)
      * @returns {Object} Search payload for ODS API
      */
     self.buildOdsSearchPayload = function(query, entityTypes, pageSize, page) {
@@ -101,17 +101,26 @@ Alt.UnifiedDataSearch.Services.SearchApiService = function() {
         pageSize = pageSize || 20;
         page = page || 0;
         
+        // Convert 0-based to 1-based page numbers for ShareDo API
+        var startPage = page + 1;
+        
         var payload = {
-            query: query || "",
-            page: page,
-            pageSize: pageSize,
-            searchType: "quick",
-            searchParticipants: {
-                enabled: false
+            startPage: startPage,
+            endPage: startPage,
+            rowsPerPage: pageSize,
+            searchString: query || "",
+            odsEntityTypes: entityTypes,
+            availability: {
+                isAvailable: null,
+                isOutOfOffice: null,
+                isNotAvailable: null
             },
-            searchOds: {
-                enabled: true,
-                associatedWithMatterOwner: false,
+            location: {
+                postcode: null,
+                range: 10
+            },
+            connection: {
+                systemName: null,
                 label: null,
                 otherOdsIds: []
             },
@@ -121,16 +130,6 @@ Alt.UnifiedDataSearch.Services.SearchApiService = function() {
             odsTypes: [],
             wallManagement: false
         };
-        
-        // Set entity type filters
-        if (entityTypes.length === 1 && entityTypes[0] === "person") {
-            payload.odsEntityTypes = ["person"];
-        } else if (entityTypes.length === 1 && entityTypes[0] === "organisation") {
-            payload.odsEntityTypes = ["organisation"];
-        } else {
-            // For "all" or multiple types, include both
-            payload.odsEntityTypes = ["person", "organisation"];
-        }
         
         return payload;
     };
@@ -406,6 +405,292 @@ Alt.UnifiedDataSearch.Services.SearchApiService = function() {
             .fail(function(error) {
                 console.error("SearchApiService: Entity creation failed:", error);
                 deferred.reject(error);
+            });
+        
+        return deferred.promise();
+    };
+    
+    /**
+     * Check if external search feature is enabled
+     * @returns {jQuery.Deferred} Promise resolving to {isEnabled: boolean}
+     */
+    self.checkExternalSearchEnabled = function() {
+        var deferred = $.Deferred();
+        
+        console.log("🌐 SearchApiService.checkExternalSearchEnabled START");
+        
+        if (!window.$ajax) {
+            console.error("❌ SearchApiService: $ajax not available for external search check");
+            deferred.resolve({ isEnabled: false });
+            return deferred.promise();
+        }
+        
+        console.log("📡 Making API call: GET /api/featureFramework/ods-external-search/isEnabled");
+        
+        $ajax.get("/api/featureFramework/ods-external-search/isEnabled")
+            .done(function(data) {
+                console.log("✅ SearchApiService: External search enabled check SUCCESS:", data);
+                deferred.resolve(data);
+            })
+            .fail(function(error) {
+                console.warn("❌ SearchApiService: External search feature check FAILED:", error);
+                console.warn("   Status:", error.status);
+                console.warn("   Response:", error.responseText);
+                deferred.resolve({ isEnabled: false });
+            });
+        
+        return deferred.promise();
+    };
+    
+    /**
+     * Get enabled external search providers
+     * @returns {jQuery.Deferred} Promise resolving to array of provider objects
+     */
+    self.getEnabledExternalProviders = function() {
+        var deferred = $.Deferred();
+        
+        console.log("🏢 SearchApiService.getEnabledExternalProviders START");
+        
+        if (!window.$ajax) {
+            console.error("❌ SearchApiService: $ajax not available for provider lookup");
+            deferred.resolve([]);
+            return deferred.promise();
+        }
+        
+        console.log("📡 Making API call: GET /api/ods/externalSearch/providers/enabled");
+        
+        $ajax.get("/api/ods/externalSearch/providers/enabled")
+            .done(function(providers) {
+                console.log("✅ SearchApiService: External providers SUCCESS:", providers);
+                console.log("   Provider count:", providers ? providers.length : 0);
+                if (providers && providers.length > 0) {
+                    providers.forEach(function(provider, index) {
+                        console.log("   Provider", index + 1 + ":", provider.systemName, 
+                                  "| People:", provider.canSearchPeople, 
+                                  "| Orgs:", provider.canSearchOrganisations);
+                    });
+                }
+                deferred.resolve(providers || []);
+            })
+            .fail(function(error) {
+                console.warn("❌ SearchApiService: External provider lookup FAILED:", error);
+                console.warn("   Status:", error.status);
+                console.warn("   Response:", error.responseText);
+                deferred.resolve([]);
+            });
+        
+        return deferred.promise();
+    };
+    
+    /**
+     * Search external provider for entities
+     * @param {String} systemName - Provider system name
+     * @param {String} entityType - "people" or "organisations" (plural form for API)
+     * @param {String} query - Search query
+     * @param {Number} page - Page number (0-based)
+     * @returns {jQuery.Deferred} Promise resolving to search results
+     */
+    self.searchExternalProvider = function(systemName, entityType, query, page) {
+        var deferred = $.Deferred();
+        
+        console.log("🔍 SearchApiService.searchExternalProvider START");
+        console.log("   System Name:", systemName);
+        console.log("   Entity Type:", entityType);
+        console.log("   Query:", query);
+        console.log("   Page:", page);
+        
+        if (!window.$ajax) {
+            console.error("❌ SearchApiService: $ajax not available for external provider search");
+            deferred.resolve({
+                success: false,
+                results: [],
+                totalResults: 0,
+                error: "$ajax service not available"
+            });
+            return deferred.promise();
+        }
+        
+        // Build the API URL with query parameters
+        var url = "/api/ods/externalSearch/providers/" + 
+                  encodeURIComponent(systemName) + "/" + 
+                  encodeURIComponent(entityType) + 
+                  "?page=" + (page || 0) + 
+                  "&q=" + encodeURIComponent(query || "");
+        
+        console.log("📡 Making API call: GET", url);
+        
+        $ajax.get(url)
+            .done(function(data) {
+                console.log("✅ SearchApiService: External provider response SUCCESS:", data);
+                console.log("   Results count:", data && data.results ? data.results.length : 0);
+                console.log("   Total results:", data ? data.totalResults : 0);
+                
+                // Normalize external provider response
+                var normalized = self.parseExternalProviderResponse(data, systemName);
+                console.log("🔄 Normalized response:", normalized);
+                
+                deferred.resolve(normalized);
+            })
+            .fail(function(error) {
+                console.error("❌ SearchApiService: External provider search FAILED:", error);
+                console.error("   Status:", error.status);
+                console.error("   Response:", error.responseText);
+                console.error("   URL was:", url);
+                
+                deferred.resolve({
+                    success: false,
+                    results: [],
+                    totalResults: 0,
+                    error: error.responseText || "External provider search failed"
+                });
+            });
+        
+        return deferred.promise();
+    };
+    
+    /**
+     * Parse and normalize external provider API response
+     * @param {Object} data - Raw external provider response
+     * @param {String} systemName - Provider system name for tracking
+     * @returns {Object} Normalized response
+     */
+    self.parseExternalProviderResponse = function(data, systemName) {
+        var results = [];
+        
+        if (data.results && Array.isArray(data.results)) {
+            data.results.forEach(function(item) {
+                try {
+                    // Normalize external result to match internal format
+                    var entity = {
+                        id: item.providersReference || item.affinityClientId || item.affinityClientCode,
+                        source: "external",
+                        providerSystemName: systemName,
+                        providersReference: item.providersReference,
+                        
+                        // Person fields
+                        firstName: item.firstName,
+                        surname: item.surname,
+                        title: item.title,
+                        dateOfBirth: item.dateOfBirth,
+                        
+                        // Organisation fields  
+                        name: item.name,
+                        
+                        // Contact details
+                        contactDetails: item.contactDetails || [],
+                        locations: item.locations || [],
+                        
+                        // Custom properties
+                        customProperties: item.customProperties,
+                        odsPartyTypes: item.odsPartyTypes,
+                        
+                        // Metadata
+                        sourceType: item.sourceType,
+                        requiresExpansion: item.requiresExpansion,
+                        
+                        // Legacy PMS fields for backward compatibility
+                        affinityClientId: item.affinityClientId,
+                        affinityClientCode: item.affinityClientCode
+                    };
+                    
+                    // Extract contact details for easier access
+                    self.extractContactDetailsFromExternal(entity);
+                    
+                    // Extract address details from locations
+                    self.extractAddressDetailsFromExternal(entity);
+                    
+                    // Add display helpers
+                    entity.displayName = self.getDisplayName(entity);
+                    entity.icon = self.getEntityIcon(entity);
+                    
+                    // Determine entity type
+                    entity.odsType = (entity.firstName || entity.surname) ? "person" : "organisation";
+                    entity.odsEntityType = entity.odsType;
+                    
+                    results.push(entity);
+                } catch(e) {
+                    console.error("SearchApiService: Failed to parse external result:", e, item);
+                }
+            });
+        }
+        
+        return {
+            success: true,
+            results: results,
+            totalResults: data.totalResults || results.length,
+            rowsPerPage: data.rowsPerPage,
+            currentPage: data.currentPage || 0,
+            hasMore: results.length > 0 && (data.totalResults || 0) > results.length
+        };
+    };
+    
+    /**
+     * Extract contact details from external provider result
+     * @param {Object} entity - External entity object
+     */
+    self.extractContactDetailsFromExternal = function(entity) {
+        if (entity.contactDetails && entity.contactDetails.length > 0) {
+            // Find primary email
+            var emailContact = entity.contactDetails.find(function(c) {
+                return c.contactTypeSystemName === "email" || 
+                       c.contactType === "email" ||
+                       (c.contactValue && c.contactValue.indexOf("@") > -1);
+            });
+            if (emailContact) {
+                entity.email = entity.email || emailContact.contactValue;
+                entity.primaryEmail = emailContact.contactValue;
+            }
+            
+            // Find primary phone
+            var phoneContact = entity.contactDetails.find(function(c) {
+                return c.contactTypeSystemName === "mobile" || 
+                       c.contactTypeSystemName === "direct-line" ||
+                       c.contactTypeSystemName === "phone" ||
+                       c.contactType === "phone" ||
+                       c.contactType === "mobile";
+            });
+            if (phoneContact) {
+                entity.phone = entity.phone || phoneContact.contactValue;
+                entity.primaryPhone = phoneContact.contactValue;
+            }
+        }
+    };
+    
+    /**
+     * Extract address details from external provider locations
+     * @param {Object} entity - External entity object
+     */
+    self.extractAddressDetailsFromExternal = function(entity) {
+        if (entity.locations && entity.locations.length > 0) {
+            var location = entity.locations[0]; // Use first location
+            entity.address = location.addressLine1;
+            entity.suburb = location.town;
+            entity.postcode = location.postCode;
+            entity.state = location.county;
+        }
+    };
+    
+    /**
+     * Check if person reference is duplicate in ODS
+     * @param {String} reference - Person reference to check
+     * @returns {jQuery.Deferred} Promise resolving to boolean
+     */
+    self.checkPersonDuplicate = function(reference) {
+        var deferred = $.Deferred();
+        
+        if (!window.$ajax || !reference) {
+            deferred.resolve(false);
+            return deferred.promise();
+        }
+        
+        $ajax.get("/api/ods/externalSearch/isPersonDuplicate/" + encodeURIComponent(reference))
+            .done(function(isDuplicate) {
+                console.log("SearchApiService: Person duplicate check for", reference, ":", isDuplicate);
+                deferred.resolve(isDuplicate);
+            })
+            .fail(function(error) {
+                console.warn("SearchApiService: Person duplicate check failed:", error);
+                deferred.resolve(false);
             });
         
         return deferred.promise();

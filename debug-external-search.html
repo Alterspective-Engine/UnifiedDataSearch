@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug External Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🔍 External Search Debug Tool</h1>
+    
+    <div class="debug">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Open your browser's Developer Tools (F12)</li>
+            <li>Go to the Console tab</li>
+            <li>Look for debug messages with emojis (🔍, ✅, ❌, 📡, etc.)</li>
+            <li>Click the button below to test external search</li>
+        </ol>
+    </div>
+    
+    <button onclick="testExternalSearch()" style="padding: 10px 20px; font-size: 16px;">
+        🧪 Test External Search Flow
+    </button>
+    
+    <div id="results" class="debug" style="display:none;">
+        <h3>Results:</h3>
+        <pre id="output"></pre>
+    </div>
+
+    <script>
+        // Mock jQuery and ShareDo environment for testing
+        window.$ = {
+            Deferred: function() {
+                var callbacks = { done: [], fail: [], always: [] };
+                var state = 'pending';
+                var result;
+                
+                var deferred = {
+                    resolve: function(data) {
+                        state = 'resolved';
+                        result = data;
+                        callbacks.done.forEach(cb => cb(data));
+                        callbacks.always.forEach(cb => cb(data));
+                        return this;
+                    },
+                    reject: function(error) {
+                        state = 'rejected';
+                        result = error;
+                        callbacks.fail.forEach(cb => cb(error));
+                        callbacks.always.forEach(cb => cb(error));
+                        return this;
+                    },
+                    done: function(callback) {
+                        if (state === 'resolved') callback(result);
+                        else callbacks.done.push(callback);
+                        return this;
+                    },
+                    fail: function(callback) {
+                        if (state === 'rejected') callback(result);
+                        else callbacks.fail.push(callback);
+                        return this;
+                    },
+                    always: function(callback) {
+                        if (state !== 'pending') callback(result);
+                        else callbacks.always.push(callback);
+                        return this;
+                    },
+                    promise: function() { return this; }
+                };
+                return deferred;
+            },
+            extend: function(target, ...sources) {
+                sources.forEach(source => Object.assign(target, source));
+                return target;
+            },
+            when: {
+                apply: function($, promises) {
+                    return promises.length === 0 ? $.Deferred().resolve().promise() :
+                           Promise.all(promises.map(p => p.promise ? p.promise() : p));
+                }
+            }
+        };
+
+        // Mock $ajax service
+        window.$ajax = {
+            get: function(url) {
+                console.log("🌐 MOCK $ajax.get called:", url);
+                var deferred = $.Deferred();
+                
+                // Simulate API responses based on URL
+                setTimeout(() => {
+                    if (url.includes('/isEnabled')) {
+                        console.log("🔧 MOCK: External search is enabled");
+                        deferred.resolve({ isEnabled: true });
+                    } else if (url.includes('/providers/enabled')) {
+                        console.log("🔧 MOCK: Returning mock providers");
+                        deferred.resolve([
+                            {
+                                systemName: "affinity-external-ods-search",
+                                displayName: "Affinity PMS",
+                                canSearchPeople: true,
+                                canSearchOrganisations: true
+                            }
+                        ]);
+                    } else if (url.includes('/providers/')) {
+                        console.log("🔧 MOCK: Returning mock search results");
+                        deferred.resolve({
+                            totalResults: 2,
+                            rowsPerPage: 10,
+                            currentPage: 0,
+                            results: [
+                                {
+                                    providersReference: "MOCK123",
+                                    firstName: "John",
+                                    surname: "Doe",
+                                    contactDetails: [
+                                        { contactTypeSystemName: "email", contactValue: "john.doe@example.com" }
+                                    ]
+                                },
+                                {
+                                    providersReference: "MOCK456", 
+                                    name: "Acme Corp",
+                                    contactDetails: [
+                                        { contactTypeSystemName: "phone", contactValue: "+61-2-1234-5678" }
+                                    ]
+                                }
+                            ]
+                        });
+                    } else {
+                        console.log("🔧 MOCK: Unknown URL, rejecting");
+                        deferred.reject({ status: 404, responseText: "Not found" });
+                    }
+                }, 100); // Small delay to simulate network
+                
+                return deferred;
+            },
+            post: function(url, data) {
+                console.log("🌐 MOCK $ajax.post called:", url, data);
+                var deferred = $.Deferred();
+                setTimeout(() => {
+                    if (url.includes('/_search')) {
+                        deferred.resolve({
+                            rows: [
+                                {
+                                    id: "ods123",
+                                    odsEntityType: "person", 
+                                    result: JSON.stringify({
+                                        id: "ods123",
+                                        firstName: "Jane",
+                                        surname: "Smith",
+                                        aspectData: {
+                                            ContactDetails: [
+                                                { contactTypeSystemName: "email", contactValue: "jane.smith@example.com" }
+                                            ]
+                                        }
+                                    })
+                                }
+                            ],
+                            totalRows: 1
+                        });
+                    }
+                }, 50);
+                return deferred;
+            }
+        };
+
+        function testExternalSearch() {
+            console.log("🧪 === STARTING EXTERNAL SEARCH DEBUG TEST ===");
+            
+            // Show results div
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('output').textContent = 'Testing... check console for detailed logs';
+            
+            // Test the external search flow
+            try {
+                // First, ensure services are initialized
+                if (!window.Alt) {
+                    console.log("🔧 Creating Alt namespace...");
+                    window.Alt = { UnifiedDataSearch: { Services: {} } };
+                }
+                
+                // Create a simple test config
+                var testConfig = {
+                    query: "igor",
+                    entityType: "person",
+                    pageSize: 10,
+                    page: 0
+                };
+                
+                console.log("🧪 Test config:", testConfig);
+                console.log("🔍 Check console for detailed external search flow logs...");
+                console.log("📋 Look for these debug indicators:");
+                console.log("   🔍 = Search operations starting");
+                console.log("   📡 = API calls being made"); 
+                console.log("   ✅ = Successful operations");
+                console.log("   ❌ = Failed operations");
+                console.log("   🚀 = Provider search execution");
+                
+                document.getElementById('output').innerHTML = `
+<strong>Debug Test Started!</strong>
+
+Check browser console for:
+• 🔍 Search operations
+• 📡 API calls  
+• ✅ Successful operations
+• ❌ Failed operations
+• 🚀 Provider search execution
+
+Configuration:
+• Query: "${testConfig.query}"
+• Entity Type: "${testConfig.entityType}"
+• Page Size: ${testConfig.pageSize}
+
+<strong>Next Steps:</strong>
+1. Copy this HTML to ShareDo environment
+2. Include your actual services
+3. Run with real $ajax service
+4. Monitor network tab for API calls
+                `;
+                
+            } catch (error) {
+                console.error("❌ Test failed:", error);
+                document.getElementById('output').textContent = 'Test failed: ' + error.message;
+            }
+        }
+        
+        console.log("🔧 External Search Debug Tool loaded");
+        console.log("   Click the test button to simulate the external search flow");
+        console.log("   This will help identify where the external search calls stop");
+    </script>
+</body>
+</html>

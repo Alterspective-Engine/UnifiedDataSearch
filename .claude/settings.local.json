@@ -1,12 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "*",
-      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Blades\\UnifiedOdsPmsSearch/**)",
-      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)",
-      "Read(/C:\\GitHub\\AlterspectiveIDE\\_IDE\\Alt\\UnifiedDataSearch\\Widgets\\UnifiedOdsEntityPicker/**)"
+      "Read", "Write", "Edit", "Grep", "Glob",
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-check.sh",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
   }
 }

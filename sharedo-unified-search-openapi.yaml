@@ -1,0 +1,774 @@
+openapi: 3.1.0
+info:
+  title: Sharedo Unified Search & External ODS Integration (Derived Spec)
+  version: "0.1.0"
+  summary: >
+    OpenAPI documentation derived from provided code and examples for the Sharedo IDE
+    Unified Search feature (ODS + external providers). This spec is inferred from
+    examples; some schemas are partial and may need refinement against the live API.
+  description: |
+    **Scope**
+    This OpenAPI file documents the endpoints mentioned in the Unified Search workflow:
+    - Feature enablement for external search
+    - External provider discovery & search (people/organisations)
+    - Sharedo ODS unified search
+    - Option sets (organisation-status example)
+    - Widget metadata for external provider result templates
+    - Supporting endpoints used by the Add/Edit Person flow (mapping, duplicate check,
+      aspects, security walls, users, locations, contact details)
+
+    **Notes**
+    - Schemas are based on examples; some fields may be optional or omitted by the server.
+    - Endpoints prefixed with `/api/...` are JSON unless stated otherwise.
+    - Widget HTML endpoint returns `text/html`.
+    - Security is environment specific; illustrative bearer/cookie schemes are included.
+
+servers:
+  - url: "{baseUrl}"
+    description: Sharedo environment
+    variables:
+      baseUrl:
+        default: https://atb-vnext.sharedo.tech
+
+tags:
+  - name: ExternalSearch
+    description: External ODS Search feature & provider endpoints
+  - name: ODS
+    description: Standard Sharedo ODS unified search and related objects
+  - name: Widgets
+    description: Widget metadata and templates
+  - name: Optionsets
+    description: Option set lookups
+  - name: Aspects
+    description: Sharedo aspects CRUD and definitions
+  - name: Security
+    description: Security and wall permissions
+  - name: Users
+    description: User lookups
+  - name: Locations
+    description: ODS locations
+  - name: Contacts
+    description: ODS contact details
+
+paths:
+  /api/featureFramework/ods-external-search/isEnabled:
+    get:
+      tags: [ExternalSearch]
+      summary: Check if ODS External Search feature is enabled
+      operationId: getExternalSearchIsEnabled
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isEnabled:
+                    type: boolean
+                required: [isEnabled]
+
+  /api/ods/externalSearch/providers/enabled:
+    get:
+      tags: [ExternalSearch]
+      summary: Get enabled external search providers
+      operationId: listEnabledExternalSearchProviders
+      responses:
+        "200":
+          description: List of enabled providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExternalSearchProvider"
+
+  /api/ods/externalSearch/providers/{systemName}/{entityType}:
+    get:
+      tags: [ExternalSearch]
+      summary: Search external provider for people or organisations
+      operationId: searchExternalProvider
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          description: Provider system name (e.g., affinity-external-ods-search)
+          schema:
+            type: string
+        - name: entityType
+          in: path
+          required: true
+          description: Entity category to search
+          schema:
+            type: string
+            enum: [people, organisations]
+        - name: page
+          in: query
+          required: false
+          description: Zero-based page index
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: q
+          in: query
+          required: true
+          description: Search query string
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalSearchPage"
+
+  /api/ods/externalSearch/providers/{systemName}/mapCustom/:
+    post:
+      tags: [ExternalSearch, Aspects]
+      summary: Map custom provider properties into ODS aspect data
+      operationId: mapExternalCustomProperties
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Aspect data fragment to merge into the ODS entity
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/ods/externalSearch/isPersonDuplicate/{reference}:
+    get:
+      tags: [ExternalSearch, ODS]
+      summary: Check if a person reference is a duplicate
+      operationId: isPersonDuplicate
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Boolean JSON (true/false) indicating duplicate status
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  /api/ods/_search:
+    post:
+      tags: [ODS]
+      summary: Sharedo ODS unified search (people/organisations)
+      operationId: searchOds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OdsUnifiedSearchRequest"
+            examples:
+              example1:
+                value:
+                  startPage: 1
+                  endPage: 1
+                  rowsPerPage: 10
+                  searchString: "igor"
+                  odsEntityTypes: ["person"]
+                  availability:
+                    isAvailable: null
+                    isOutOfOffice: null
+                    isNotAvailable: null
+                  location:
+                    postcode: null
+                    range: 10
+                  connection:
+                    systemName: null
+                    label: null
+                    otherOdsIds: []
+                  competencies: []
+                  teams: []
+                  roles: []
+                  odsTypes: []
+                  wallManagement: false
+      responses:
+        "200":
+          description: Paged ODS results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OdsUnifiedSearchResponse"
+
+  /api/ods/optionsets/organisation-status:
+    get:
+      tags: [Optionsets]
+      summary: Get organisation status optionset
+      operationId: getOrganisationStatusOptionset
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptionSetResponse"
+
+  /_ck-{ckVersion}/api/widgets/{widgetId}:
+    get:
+      tags: [Widgets]
+      summary: Get widget metadata (versioned ck path)
+      operationId: getWidgetMetadataVersioned
+      parameters:
+        - name: ckVersion
+          in: path
+          required: true
+          description: ck version segment (e.g., 97)
+          schema: { type: string }
+        - name: widgetId
+          in: path
+          required: true
+          description: Widget identifier (e.g., ATBPlugin.Widgets.ExternalOdsSearch.ResultWidget)
+          schema: { type: string }
+      responses:
+        "200":
+          description: Widget metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetMetadata"
+
+  /_pluginfiles/atbplugin/widgets/externalodssearch/resultwidget.html:
+    get:
+      tags: [Widgets]
+      summary: Get external ODS search result widget HTML template
+      operationId: getExternalOdsResultWidgetHtml
+      responses:
+        "200":
+          description: HTML template
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /api/aspects/ods/aspectDefinitions/person:
+    get:
+      tags: [Aspects]
+      summary: Get aspect definitions for ODS person
+      operationId: getPersonAspectDefinitions
+      responses:
+        "200":
+          description: Aspect definitions (shape may vary)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AspectDefinitions"
+
+  /api/aspects/ods/people/{id}:
+    get:
+      tags: [Aspects]
+      summary: Get ODS person by id
+      operationId: getOdsPerson
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: ODS person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OdsPerson"
+    put:
+      tags: [Aspects]
+      summary: Update ODS person
+      operationId: updateOdsPerson
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OdsPersonSaveModel"
+      responses:
+        "200":
+          description: Saved person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OdsPerson"
+
+  /api/aspects/ods/people/:
+    post:
+      tags: [Aspects]
+      summary: Create ODS person
+      operationId: createOdsPerson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OdsPersonSaveModel"
+      responses:
+        "200":
+          description: Created person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OdsPerson"
+
+  /api/ods/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ODS person id
+      operationId: getOdsUserByPersonId
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Found user mapping
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          description: Not a user / not found
+
+  /api/ods/security/walls/canEditEntity/{id}:
+    get:
+      tags: [Security]
+      summary: Can current user edit entity’s wall
+      operationId: canEditWallForEntity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  canEdit:
+                    type: boolean
+                required: [canEdit]
+
+  /api/aspects/ods/locations/:
+    post:
+      tags: [Locations]
+      summary: Create a location (returns new location id)
+      operationId: createLocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OdsLocation"
+      responses:
+        "200":
+          description: Returns newly created location id (UUID string)
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /api/ods/locations/for/{odsId}:
+    post:
+      tags: [Locations]
+      summary: Attach an existing location to an ODS entity
+      operationId: attachLocationToEntity
+      parameters:
+        - name: odsId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              description: New location id (UUID string)
+      responses:
+        "200":
+          description: Attached
+
+  /api/ods/contactdetail/:
+    post:
+      tags: [Contacts]
+      summary: Create a contact detail and attach to person
+      operationId: createContactDetail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OdsContactDetail"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: Cookie
+
+  schemas:
+    ExternalSearchProvider:
+      type: object
+      properties:
+        systemName: { type: string }
+        displayName: { type: string }
+        description: { type: string, nullable: true }
+        configurationPanel: { type: string, nullable: true }
+        resultsTemplate: { type: string, nullable: true }
+        iconClass: { type: string, nullable: true }
+        canSearchOrganisations: { type: boolean }
+        canSearchPeople: { type: boolean }
+      required: [systemName, displayName, canSearchOrganisations, canSearchPeople]
+
+    ExternalSearchPage:
+      type: object
+      properties:
+        totalResults: { type: integer }
+        rowsPerPage: { type: integer }
+        currentPage: { type: integer }
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExternalSearchResult"
+        success:
+          type: boolean
+          nullable: true
+        errors:
+          type: object
+          nullable: true
+      required: [totalResults, rowsPerPage, currentPage, results]
+
+    ExternalSearchResult:
+      type: object
+      description: Generic external search result (person or organisation). Fields are optional per provider.
+      properties:
+        sourceType: { type: string, nullable: true }
+        affinityClientId: { type: string, nullable: true }
+        affinityClientCode: { type: string, nullable: true }
+        # Person fields
+        title: { type: string, nullable: true }
+        firstName: { type: string, nullable: true }
+        surname: { type: string, nullable: true }
+        dateOfBirth: { type: string, format: date, nullable: true }
+        # Organisation fields
+        name: { type: string, nullable: true }
+        # Common
+        providersReference: { type: string, nullable: true }
+        requiresExpansion: { type: boolean, nullable: true }
+        customProperties:
+          type: object
+          nullable: true
+          additionalProperties: true
+        odsPartyTypes:
+          type: array
+          nullable: true
+          items: { type: string }
+        contactDetails:
+          type: array
+          items:
+            $ref: "#/components/schemas/OdsContactDetail"
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/OdsLocation"
+
+    OdsContactDetail:
+      type: object
+      properties:
+        contactType: { type: string, nullable: true }
+        id: { type: string, nullable: true, description: "May be provider GUID" }
+        organisationId: { type: string, nullable: true }
+        personId: { type: string, nullable: true }
+        teamId: { type: string, nullable: true }
+        isPrimary: { type: boolean, nullable: true }
+        contactTypeSystemName: { type: string, nullable: true }
+        contactValue: { type: string, nullable: true }
+        isActive: { type: boolean, nullable: true }
+        externalReference: { type: string, nullable: true }
+      required: []
+
+    OdsLocation:
+      type: object
+      properties:
+        locationTypes:
+          type: array
+          items: { type: string }
+          description: Example includes "correspondence"
+        id: { type: string, nullable: true }
+        organisationId: { type: string, nullable: true }
+        personId: { type: string, nullable: true }
+        name: { type: string, nullable: true }
+        addressLine1: { type: string, nullable: true }
+        addressLine2: { type: string, nullable: true }
+        addressLine3: { type: string, nullable: true }
+        addressLine4: { type: string, nullable: true }
+        town: { type: string, nullable: true }
+        county: { type: string, nullable: true }
+        countrySystemName: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        countryIsoCode: { type: string, nullable: true }
+        dxName: { type: string, nullable: true }
+        dxNumber: { type: string, nullable: true }
+        isActive: { type: boolean, nullable: true }
+        departmentCode: { type: string, nullable: true }
+        externalReference: { type: string, nullable: true }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        geocodeType: { type: string, nullable: true }
+        bagBoxNumber: { type: string, nullable: true }
+        companyName: { type: string, nullable: true }
+        postCode: { type: string, nullable: true }
+      required: []
+
+    OdsUnifiedSearchRequest:
+      type: object
+      properties:
+        startPage: { type: integer }
+        endPage: { type: integer }
+        rowsPerPage: { type: integer }
+        searchString: { type: string }
+        odsEntityTypes:
+          type: array
+          items:
+            type: string
+            enum: [person, organisation]
+        availability:
+          type: object
+          properties:
+            isAvailable: { type: boolean, nullable: true }
+            isOutOfOffice: { type: boolean, nullable: true }
+            isNotAvailable: { type: boolean, nullable: true }
+        location:
+          type: object
+          properties:
+            postcode: { type: string, nullable: true }
+            range: { type: integer, nullable: true }
+        connection:
+          type: object
+          properties:
+            systemName: { type: string, nullable: true }
+            label: { type: string, nullable: true }
+            otherOdsIds:
+              type: array
+              items: { type: string }
+        competencies:
+          type: array
+          items: { type: string }
+        teams:
+          type: array
+          items: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        odsTypes:
+          type: array
+          items: { type: string }
+        wallManagement: { type: boolean }
+      required: [rowsPerPage, searchString, odsEntityTypes]
+
+    OdsUnifiedSearchResponse:
+      type: object
+      properties:
+        startPage: { type: integer }
+        endPage: { type: integer }
+        totalPages: { type: integer }
+        startRow: { type: integer }
+        endRow: { type: integer }
+        totalRows: { type: integer }
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/OdsUnifiedRow"
+      required: [rows]
+
+    OdsUnifiedRow:
+      type: object
+      properties:
+        odsEntityType:
+          type: string
+          enum: [person, organisation]
+        id:
+          type: string
+          format: uuid
+        result:
+          oneOf:
+            - type: string
+              description: JSON string (as observed in examples)
+            - $ref: "#/components/schemas/OdsPerson"
+        aspectSearchResultWidgets:
+          nullable: true
+      required: [odsEntityType, id, result]
+
+    OptionSetResponse:
+      type: object
+      properties:
+        optionSetProperty:
+          $ref: "#/components/schemas/OptionSetProperty"
+        optionSetValueProperties:
+          type: array
+          items:
+            $ref: "#/components/schemas/OptionSetValue"
+      required: [optionSetProperty, optionSetValueProperties]
+
+    OptionSetProperty:
+      type: object
+      properties:
+        optionSetName: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        allowHierarchy: { type: boolean }
+        isSystem: { type: boolean }
+        isActive: { type: boolean }
+        enableDisplayRules: { type: boolean }
+        requiresGlobalFeature: { type: string, nullable: true }
+      required: [optionSetName, name, allowHierarchy, isSystem, isActive, enableDisplayRules]
+
+    OptionSetValue:
+      type: object
+      properties:
+        children:
+          type: array
+          items: { type: object }
+        id: { type: integer }
+        optionSetName: { type: string }
+        parentValueId: { type: integer, nullable: true }
+        name: { type: string }
+        shortName: { type: string, nullable: true }
+        iconClass: { type: string, nullable: true }
+        isActive: { type: boolean }
+        meaningCode: { type: string, nullable: true }
+        migrationId: { type: string, nullable: true }
+        displayColour: { type: string, nullable: true }
+        displayOrder: { type: integer }
+      required: [id, optionSetName, name, isActive, displayOrder]
+
+    WidgetMetadata:
+      type: object
+      properties:
+        id: { type: string }
+        priority: { type: integer }
+        scripts:
+          type: array
+          items: { type: string }
+        styles:
+          type: array
+          items: { type: string }
+        templates:
+          type: array
+          items: { type: string }
+        menuTemplates:
+          type: array
+          items: { type: string }
+        titleTemplates:
+          type: array
+          items: { type: string }
+        components:
+          type: array
+          items: { type: string }
+        requiresGlobalFeature: { type: string, nullable: true }
+        requiresFeature: { type: string, nullable: true }
+        widgetSource: { type: integer, nullable: true }
+        designer: { type: string, nullable: true }
+      required: [id, priority, scripts, templates]
+
+    AspectDefinitions:
+      type: object
+      description: >
+        Generic aspects definition schema placeholder. Actual structure can vary by tenant/version.
+        Includes optional 'footer' section as referenced by UI code.
+      properties:
+        footer:
+          type: array
+          items: { type: object }
+      additionalProperties: true
+
+    OdsPerson:
+      type: object
+      description: Simplified ODS person schema derived from examples
+      properties:
+        id: { type: string, format: uuid }
+        firstName: { type: string, nullable: true }
+        surname: { type: string, nullable: true }
+        dateOfBirth: { type: string, nullable: true }
+        isUser: { type: boolean, nullable: true }
+        isActive: { type: boolean, nullable: true }
+        organisationId: { type: string, nullable: true }
+        reference: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        tagNames:
+          type: array
+          items: { type: string }
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/OdsLocation"
+        aspectData:
+          type: object
+          additionalProperties: true
+      required: [id]
+
+    OdsPersonSaveModel:
+      type: object
+      description: Save model for creating/updating an ODS person
+      properties:
+        # Matches ko.mapping.toJS(self.person) + aspect serialization in example code
+        id: { type: string, nullable: true }
+        firstName: { type: string, nullable: true }
+        surname: { type: string, nullable: true }
+        dateOfBirth: { type: string, nullable: true }
+        reference: { type: string, nullable: true }
+        createdForSharedoId: { type: string, nullable: true }
+        createdForSharedoType: { type: string, nullable: true }
+        aspectData:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+
+security:
+  - bearerAuth: []
+  - cookieAuth: []

@@ -90,54 +90,57 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
         
         var config = $.extend({}, defaults, options);
         
-        console.log("UnifiedSearchService.search called with:", config);
+        console.log("🚀 UnifiedSearchService.search called with:", config);
         
         // Execute parallel searches
+        console.log("🔍 Starting ODS search...");
         var odsPromise = self.searchOds(config)
             .done(function(results) {
-                console.log("ODS search completed:", results);
+                console.log("✅ ODS search completed:", results);
                 if (config.onOdsComplete) {
                     config.onOdsComplete(results);
                 }
             })
             .fail(function(error) {
-                console.error("ODS search failed:", error);
+                console.error("❌ ODS search failed:", error);
                 if (config.onOdsError) {
                     config.onOdsError(error);
                 }
             });
         
-        var pmsPromise = self.searchPmsWithTimeout(config)
+        console.log("🔍 Starting external provider search...");
+        var externalPromise = self.searchPmsWithTimeout(config)
             .done(function(results) {
-                console.log("PMS search completed:", results);
-                if (config.onPmsComplete) {
+                console.log("✅ External provider search completed:", results);
+                if (config.onPmsComplete) { // Keep callback name for backward compatibility
                     config.onPmsComplete(results);
                 }
             })
             .fail(function(error) {
-                console.error("PMS search failed:", error);
-                if (config.onPmsError) {
+                console.error("❌ External provider search failed:", error);
+                if (config.onPmsError) { // Keep callback name for backward compatibility
                     config.onPmsError(error);
                 }
             });
         
         // Wait for both searches to complete
-        $.when(odsPromise, pmsPromise)
-            .always(function(odsResponse, pmsResponse) {
+        $.when(odsPromise, externalPromise)
+            .always(function(odsResponse, externalResponse) {
                 var odsResults = self.extractResults(odsResponse);
-                var pmsResults = self.extractResults(pmsResponse);
+                var externalResults = self.extractResults(externalResponse);
                 
-                console.log("Both searches complete. ODS:", odsResults, "PMS:", pmsResults);
+                console.log("Both searches complete. ODS:", odsResults, "External:", externalResults);
                 
                 // Merge results using ResultMergerService
                 var merged = self.resultMergerService ? 
-                    self.resultMergerService.mergeResults(odsResults, pmsResults) :
-                    self.fallbackMerge(odsResults, pmsResults);
+                    self.resultMergerService.mergeResults(odsResults, externalResults) :
+                    self.fallbackMerge(odsResults, externalResults);
                 
                 deferred.resolve({
                     results: merged,
                     odsCount: odsResults.totalResults || (odsResults.results ? odsResults.results.length : 0),
-                    pmsCount: pmsResults.totalResults || (pmsResults.results ? pmsResults.results.length : 0),
+                    pmsCount: externalResults.totalResults || (externalResults.results ? externalResults.results.length : 0), // Keep name for compatibility
+                    externalCount: externalResults.totalResults || (externalResults.results ? externalResults.results.length : 0),
                     totalCount: merged.length
                 });
             });
@@ -198,7 +201,7 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
     };
     
     /**
-     * Search PMS with timeout protection
+     * Search external providers with timeout protection
      * @private
      */
     self.searchPmsWithTimeout = function(config) {
@@ -207,11 +210,11 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
         
         // Set timeout
         timeoutHandle = setTimeout(function() {
-            deferred.reject({ error: "timeout", message: "PMS search timed out" });
+            deferred.reject({ error: "timeout", message: "External provider search timed out" });
         }, config.timeout);
         
         // Execute search
-        self.searchPms(config)
+        self.searchExternalProviders(config)
             .done(function(results) {
                 clearTimeout(timeoutHandle);
                 deferred.resolve(results);
@@ -225,17 +228,238 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
     };
     
     /**
-     * Search PMS (DEPRECATED - Mock PMS removed, no real PMS integration yet)
+     * Search external providers (replaces deprecated PMS search)
+     * @private
+     */
+    self.searchExternalProviders = function(config) {
+        var deferred = $.Deferred();
+        
+        console.log("🔍 UnifiedSearchService.searchExternalProviders START");
+        console.log("  Config:", config);
+        
+        // Get SearchApiService
+        var searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
+        if (!searchApiService) {
+            console.error("❌ SearchApiService not available for external provider search");
+            return $.Deferred().resolve({ 
+                results: [], 
+                totalResults: 0, 
+                success: false,
+                error: "SearchApiService not available"
+            }).promise();
+        }
+        
+        console.log("✅ SearchApiService available, starting external provider search...");
+        
+        // Step 1: Check if external search is enabled
+        console.log("📡 Step 1: Checking if external search is enabled...");
+        searchApiService.checkExternalSearchEnabled()
+            .then(function(enabledResponse) {
+                console.log("📡 External search enabled response:", enabledResponse);
+                
+                if (!enabledResponse || !enabledResponse.isEnabled) {
+                    console.log("❌ External search is disabled");
+                    deferred.resolve({ 
+                        results: [], 
+                        totalResults: 0, 
+                        success: false,
+                        error: "External search is disabled"
+                    });
+                    return;
+                }
+                
+                console.log("✅ External search is ENABLED, proceeding to get providers...");
+                
+                // Step 2: Get enabled providers
+                console.log("📡 Step 2: Getting enabled external providers...");
+                return searchApiService.getEnabledExternalProviders();
+            })
+            .then(function(providers) {
+                console.log("📡 External providers response:", providers);
+                
+                if (!providers || providers.length === 0) {
+                    console.log("❌ No external providers available");
+                    deferred.resolve({ 
+                        results: [], 
+                        totalResults: 0, 
+                        success: false,
+                        error: "No external providers available"
+                    });
+                    return;
+                }
+                
+                console.log("✅ Found", providers.length, "external providers");
+                
+                // Step 3: Filter providers by entity type capability
+                console.log("🔽 Step 3: Filtering providers by entity type:", config.entityType);
+                var capableProviders = self.filterProvidersByEntityType(providers, config.entityType);
+                console.log("🔽 Capable providers:", capableProviders);
+                
+                if (capableProviders.length === 0) {
+                    console.log("❌ No providers support requested entity types");
+                    deferred.resolve({ 
+                        results: [], 
+                        totalResults: 0, 
+                        success: false,
+                        error: "No providers support requested entity types"
+                    });
+                    return;
+                }
+                
+                console.log("✅ Found", capableProviders.length, "capable providers for entity type:", config.entityType);
+                
+                // Step 4: Execute searches across all capable providers
+                console.log("🚀 Step 4: Executing provider searches...");
+                return self.executeProviderSearches(capableProviders, config);
+            })
+            .then(function(mergedResults) {
+                console.log("✅ External provider search COMPLETE, results:", mergedResults);
+                deferred.resolve(mergedResults);
+            })
+            .fail(function(error) {
+                console.error("❌ External provider search FAILED:", error);
+                deferred.resolve({ 
+                    results: [], 
+                    totalResults: 0, 
+                    success: false,
+                    error: error.message || "External provider search failed"
+                });
+            });
+        
+        return deferred.promise();
+    };
+    
+    /**
+     * Filter providers by their capability to search requested entity types
+     * @private
+     */
+    self.filterProvidersByEntityType = function(providers, entityType) {
+        return providers.filter(function(provider) {
+            if (entityType === "person") {
+                return provider.canSearchPeople;
+            } else if (entityType === "organisation") {
+                return provider.canSearchOrganisations;
+            } else {
+                // For "all", provider needs to support at least one type
+                return provider.canSearchPeople || provider.canSearchOrganisations;
+            }
+        });
+    };
+    
+    /**
+     * Execute searches across multiple providers and merge results
+     * @private
+     */
+    self.executeProviderSearches = function(providers, config) {
+        var deferred = $.Deferred();
+        var searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
+        var promises = [];
+        
+        console.log("🚀 executeProviderSearches START");
+        console.log("  Providers:", providers);
+        console.log("  Config:", config);
+        
+        // Determine entity types to search
+        var entityTypesToSearch = [];
+        if (config.entityType === "person") {
+            entityTypesToSearch = ["people"]; // API uses plural
+        } else if (config.entityType === "organisation") {
+            entityTypesToSearch = ["organisations"]; // API uses plural
+        } else {
+            entityTypesToSearch = ["people", "organisations"];
+        }
+        
+        console.log("📋 Entity types to search:", entityTypesToSearch);
+        
+        // Create search promises for each provider and entity type combination
+        providers.forEach(function(provider) {
+            console.log("🔍 Processing provider:", provider.systemName);
+            console.log("  Can search people:", provider.canSearchPeople);
+            console.log("  Can search organisations:", provider.canSearchOrganisations);
+            
+            entityTypesToSearch.forEach(function(entityType) {
+                // Check provider capability
+                var canSearch = (entityType === "people" && provider.canSearchPeople) ||
+                               (entityType === "organisations" && provider.canSearchOrganisations);
+                
+                console.log("  Entity type:", entityType, "Can search:", canSearch);
+                
+                if (canSearch) {
+                    console.log("📡 Creating search promise for", provider.systemName, entityType);
+                    
+                    var searchPromise = searchApiService.searchExternalProvider(
+                        provider.systemName,
+                        entityType,
+                        config.query,
+                        config.page
+                    );
+                    promises.push(searchPromise);
+                    
+                    console.log("✅ Added search promise, total promises:", promises.length);
+                } else {
+                    console.log("❌ Skipping", provider.systemName, entityType, "- capability not supported");
+                }
+            });
+        });
+        
+        console.log("📊 Total search promises created:", promises.length);
+        
+        if (promises.length === 0) {
+            console.log("❌ No searches could be executed");
+            deferred.resolve({ 
+                results: [], 
+                totalResults: 0, 
+                success: false,
+                error: "No searches could be executed"
+            });
+            return deferred.promise();
+        }
+        
+        console.log("⏳ Waiting for", promises.length, "external provider searches to complete...");
+        
+        // Wait for all searches to complete
+        $.when.apply($, promises)
+            .always(function() {
+                console.log("📥 All external provider searches completed, processing results...");
+                console.log("  Arguments received:", arguments.length);
+                
+                // Collect all results from the arguments
+                var allResults = [];
+                var totalCount = 0;
+                
+                // Process each response (arguments contains all promise results)
+                for (var i = 0; i < arguments.length; i++) {
+                    var response = arguments[i];
+                    console.log("  Response", i + ":", response);
+                    
+                    if (response && response.results && response.results.length > 0) {
+                        console.log("    Found", response.results.length, "results in response", i + 1);
+                        allResults = allResults.concat(response.results);
+                        totalCount += response.totalResults || response.results.length;
+                    } else {
+                        console.log("    No results in response", i + 1);
+                    }
+                }
+                
+                console.log("✅ External provider searches complete, total results:", allResults.length);
+                
+                deferred.resolve({
+                    results: allResults,
+                    totalResults: totalCount,
+                    success: true
+                });
+            });
+        
+        return deferred.promise();
+    };
+    
+    /**
+     * Search PMS (DEPRECATED - Replaced by external providers)
      * @private
      */
     self.searchPms = function(config) {
-        console.warn("searchPms: Mock PMS removed, no real PMS integration available yet");
-        return $.Deferred().resolve({ 
-            results: [], 
-            totalResults: 0, 
-            success: false,
-            error: "PMS search not available - mock services removed"
-        }).promise();
+        console.warn("searchPms: DEPRECATED - Use searchExternalProviders instead");
+        return self.searchExternalProviders(config);
     };
     
     /**
@@ -265,7 +489,7 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
      * Fallback merge if ResultMergerService not available
      * @private
      */
-    self.fallbackMerge = function(odsResults, pmsResults) {
+    self.fallbackMerge = function(odsResults, externalResults) {
         var merged = [];
         
         // Add ODS results
@@ -284,18 +508,20 @@ Alt.UnifiedDataSearch.Services.UnifiedSearchService = function() {
             });
         }
         
-        // Add PMS results
-        if (pmsResults && pmsResults.results) {
-            pmsResults.results.forEach(function(item) {
+        // Add external provider results
+        if (externalResults && externalResults.results) {
+            externalResults.results.forEach(function(item) {
                 merged.push({
                     id: item.id,
-                    source: "pms",
-                    pmsId: item.id,
+                    source: item.source || "external",
+                    externalId: item.id,
+                    providersReference: item.providersReference,
+                    providerSystemName: item.providerSystemName,
                     displayName: self.getDisplayName(item),
                     data: item,
                     icon: self.getIcon(item),
-                    primaryEmail: item.email,
-                    primaryPhone: item.phone || item.mobile
+                    primaryEmail: item.email || item.primaryEmail,
+                    primaryPhone: item.phone || item.primaryPhone || item.mobile
                 });
             });
         }
