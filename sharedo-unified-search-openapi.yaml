@@ -74,7 +74,7 @@ paths:
       summary: Get enabled external search providers
       operationId: listEnabledExternalSearchProviders
       responses:
-        "200":
+        "200": 
           description: List of enabled providers
           content:
             application/json:

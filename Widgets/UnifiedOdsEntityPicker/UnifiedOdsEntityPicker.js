@@ -102,7 +102,6 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker = function(element, configu
     self.selectedEntities = ko.observableArray([]);
     self.displayValue = ko.observable("");
     self.isSearching = ko.observable(false);
-    self.hasValue = ko.observable(false);
     
     // Bind keyboard navigation to result items
     self.isResultSelected = function(index) {
@@ -182,7 +181,7 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker = function(element, configu
     
     // Subscribe to changes
     self.selectedEntities.subscribe(function(entities) {
-        self.hasValue(entities && entities.length > 0);
+        // hasValue is now a computed observable, no need to manually set it
         
         // Update host model if in aspect mode
         if (self._host.model && self.options.fieldName) {
@@ -197,6 +196,14 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker = function(element, configu
                 mode: self.options.mode
             });
         }
+    });
+    
+    // Computed for checking if has value
+    self.hasValue = ko.computed(function() {
+        if (self.options.allowMultiple) {
+            return self.selectedEntities().length > 0;
+        }
+        return self.selectedEntity() !== null && self.selectedEntity() !== undefined;
     });
     
     // Expose validation error count for aspect forms
@@ -221,14 +228,6 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker = function(element, configu
         }
         
         return classes.join(" ");
-    });
-    
-    // Computed for checking if has value
-    self.hasValue = ko.computed(function() {
-        if (self.options.allowMultiple) {
-            return self.selectedEntities().length > 0;
-        }
-        return self.selectedEntity() !== null && self.selectedEntity() !== undefined;
     });
     
     // Computed for showing search results dropdown
