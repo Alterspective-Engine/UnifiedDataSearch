@@ -33,6 +33,13 @@
         <pre id="output"></pre>
     </div>
 
+    <!-- Include the actual services for testing -->
+    <script src="Helpers/namespace.js"></script>
+    <script src="Services/SearchApiService.js"></script>
+    <script src="Services/UnifiedSearchService.js"></script>
+    <script src="Services/ResultMergerService.js"></script>
+    <script src="Services/OdsImportService.js"></script>
+    
     <script>
         // Mock jQuery and ShareDo environment for testing
         window.$ = {
@@ -179,56 +186,115 @@
             
             // Test the external search flow
             try {
-                // First, ensure services are initialized
-                if (!window.Alt) {
-                    console.log("🔧 Creating Alt namespace...");
-                    window.Alt = { UnifiedDataSearch: { Services: {} } };
+                console.log("🔧 Checking service availability...");
+                
+                // Check if services are loaded
+                var searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
+                var unifiedSearchService = Alt.UnifiedDataSearch.Services.unifiedSearchService;
+                
+                console.log("📋 Service Status:");
+                console.log("  SearchApiService:", searchApiService ? "✅ Available" : "❌ Missing");
+                console.log("  UnifiedSearchService:", unifiedSearchService ? "✅ Available" : "❌ Missing");
+                
+                if (!searchApiService) {
+                    throw new Error("SearchApiService not available");
                 }
                 
-                // Create a simple test config
+                if (!unifiedSearchService) {
+                    throw new Error("UnifiedSearchService not available");
+                }
+                
+                // Create a test config
                 var testConfig = {
                     query: "igor",
                     entityType: "person",
                     pageSize: 10,
-                    page: 0
+                    page: 0,
+                    timeout: 5000,
+                    onOdsComplete: function(results) {
+                        console.log("🎯 ODS search callback:", results);
+                        updateOutput("ODS search completed: " + (results.results ? results.results.length : 0) + " results");
+                    },
+                    onPmsComplete: function(results) {
+                        console.log("🎯 External search callback:", results);
+                        updateOutput("External search completed: " + (results.results ? results.results.length : 0) + " results");
+                    }
                 };
                 
                 console.log("🧪 Test config:", testConfig);
-                console.log("🔍 Check console for detailed external search flow logs...");
-                console.log("📋 Look for these debug indicators:");
-                console.log("   🔍 = Search operations starting");
-                console.log("   📡 = API calls being made"); 
-                console.log("   ✅ = Successful operations");
-                console.log("   ❌ = Failed operations");
-                console.log("   🚀 = Provider search execution");
+                console.log("🚀 Starting unified search test...");
                 
-                document.getElementById('output').innerHTML = `
-<strong>Debug Test Started!</strong>
-
-Check browser console for:
-• 🔍 Search operations
-• 📡 API calls  
-• ✅ Successful operations
-• ❌ Failed operations
-• 🚀 Provider search execution
-
-Configuration:
-• Query: "${testConfig.query}"
-• Entity Type: "${testConfig.entityType}"
-• Page Size: ${testConfig.pageSize}
-
-<strong>Next Steps:</strong>
-1. Copy this HTML to ShareDo environment
-2. Include your actual services
-3. Run with real $ajax service
-4. Monitor network tab for API calls
-                `;
+                updateOutput("🚀 Starting external search test...\n\nConfiguration:\n" + JSON.stringify(testConfig, null, 2));
+                
+                // Test individual components first
+                console.log("📡 Testing individual components...");
+                
+                // Test 1: Check external search enabled
+                console.log("🔍 Test 1: Checking if external search is enabled...");
+                searchApiService.checkExternalSearchEnabled()
+                    .done(function(response) {
+                        console.log("✅ External search enabled check result:", response);
+                        updateOutput(updateOutput.lastText + "\n\n✅ External search enabled: " + (response.isEnabled ? "YES" : "NO"));
+                        
+                        if (response.isEnabled) {
+                            // Test 2: Get providers
+                            console.log("🔍 Test 2: Getting external providers...");
+                            return searchApiService.getEnabledExternalProviders();
+                        } else {
+                            updateOutput(updateOutput.lastText + "\n❌ External search is disabled, cannot continue");
+                            return $.Deferred().reject("External search disabled").promise();
+                        }
+                    })
+                    .then(function(providers) {
+                        console.log("✅ External providers result:", providers);
+                        updateOutput(updateOutput.lastText + "\n\n✅ Found " + (providers ? providers.length : 0) + " external providers:");
+                        
+                        if (providers && providers.length > 0) {
+                            providers.forEach(function(provider, index) {
+                                updateOutput(updateOutput.lastText + "\n  " + (index + 1) + ". " + provider.systemName + 
+                                           " (People: " + provider.canSearchPeople + ", Orgs: " + provider.canSearchOrganisations + ")");
+                            });
+                            
+                            // Test 3: Execute unified search
+                            console.log("🔍 Test 3: Executing unified search...");
+                            updateOutput(updateOutput.lastText + "\n\n🚀 Executing unified search...");
+                            return unifiedSearchService.search(testConfig);
+                        } else {
+                            updateOutput(updateOutput.lastText + "\n❌ No external providers available");
+                            return $.Deferred().reject("No providers available").promise();
+                        }
+                    })
+                    .then(function(unifiedResults) {
+                        console.log("✅ Unified search complete:", unifiedResults);
+                        updateOutput(updateOutput.lastText + "\n\n🎉 UNIFIED SEARCH COMPLETE!");
+                        updateOutput(updateOutput.lastText + "\n  Total results: " + (unifiedResults.totalCount || 0));
+                        updateOutput(updateOutput.lastText + "\n  ODS count: " + (unifiedResults.odsCount || 0));
+                        updateOutput(updateOutput.lastText + "\n  External count: " + (unifiedResults.externalCount || unifiedResults.pmsCount || 0));
+                        
+                        if (unifiedResults.results && unifiedResults.results.length > 0) {
+                            updateOutput(updateOutput.lastText + "\n\n📋 Sample results:");
+                            unifiedResults.results.slice(0, 3).forEach(function(result, index) {
+                                updateOutput(updateOutput.lastText + "\n  " + (index + 1) + ". " + 
+                                           (result.displayName || "Unknown") + " (" + result.source + ")");
+                            });
+                        }
+                    })
+                    .fail(function(error) {
+                        console.error("❌ External search test failed:", error);
+                        updateOutput(updateOutput.lastText + "\n\n❌ External search test FAILED: " + (error.message || error));
+                    });
                 
             } catch (error) {
-                console.error("❌ Test failed:", error);
-                document.getElementById('output').textContent = 'Test failed: ' + error.message;
+                console.error("❌ Test setup failed:", error);
+                updateOutput('❌ Test setup failed: ' + error.message);
             }
         }
+        
+        function updateOutput(text) {
+            updateOutput.lastText = text;
+            document.getElementById('output').textContent = text;
+        }
+        updateOutput.lastText = "";
         
         console.log("🔧 External Search Debug Tool loaded");
         console.log("   Click the test button to simulate the external search flow");

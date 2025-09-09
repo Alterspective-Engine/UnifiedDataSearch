@@ -372,10 +372,28 @@ Alt.UnifiedDataSearch.Blades.UnifiedOdsPmsSearch.prototype.executeSearchWithShar
     self.hasSearched(true);
     self.searchErrors([]);
     
-    // Use shared search service
-    self.searchService.search(query, {
+    // Use shared search service (updated API)
+    var entityTypes = self.getSelectedEntityTypes ? self.getSelectedEntityTypes() : [self.searchEntityType()];
+    
+    self.searchService.search({
+        query: query,
+        entityType: entityTypes.length === 1 ? entityTypes[0] : "all",
+        entityTypes: entityTypes,
         pageSize: self.options.rowsPerPage,
-        entityTypes: self.getSelectedEntityTypes ? self.getSelectedEntityTypes() : [self.searchEntityType()]
+        page: 0,
+        timeout: 10000,
+        onOdsComplete: function(odsResults) {
+            console.log("🎯 Blade: ODS search completed:", odsResults);
+        },
+        onPmsComplete: function(externalResults) {
+            console.log("🎯 Blade: External search completed:", externalResults);
+        },
+        onOdsError: function(error) {
+            console.error("❌ Blade: ODS search failed:", error);
+        },
+        onPmsError: function(error) {
+            console.error("❌ Blade: External search failed:", error);
+        }
     })
     .done(function(results) {
         console.log("%c✅ SEARCH COMPLETE", "color: #22c55e; font-weight: bold; font-size: 14px");

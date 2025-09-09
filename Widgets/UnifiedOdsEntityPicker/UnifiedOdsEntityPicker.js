@@ -510,6 +510,9 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.getSourceBadge = 
     switch(entity.source) {
         case "sharedo":
             return '<span class="source-badge source-sharedo"><i class="fa fa-database"></i> ODS</span>';
+        case "external":
+            var providerName = entity.providerSystemName || "External";
+            return '<span class="source-badge source-external"><i class="fa fa-cloud"></i> ' + providerName + '</span>';
         case "pms":
             return '<span class="source-badge source-pms"><i class="fa fa-briefcase"></i> PMS</span>';
         case "matched":
@@ -771,107 +774,57 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
     
     console.log("Search mode:", self.options.searchMode);
     
-    // Search ODS using SHARED SearchApiService (single source of truth)
-    if (self.options.searchMode === "unified" || self.options.searchMode === "odsOnly") {
-        console.log("🔍 Widget making ODS search with query:", query);
-        console.log("🎯 Using SHARED SearchApiService (same as Blade)");
-        
-        // Get SearchApiService instance with defensive checks
-        var searchApiService = null;
-        
-        // Try the guaranteed initialization function first
-        if (Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.getSearchApiService) {
-            searchApiService = Alt.UnifiedDataSearch.Services.getSearchApiService();
-        }
-        
-        // Fallback to direct singleton access
-        if (!searchApiService && Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.searchApiService) {
-            searchApiService = Alt.UnifiedDataSearch.Services.searchApiService;
-            console.log("Widget: Using direct searchApiService singleton");
-        }
-        
-        if (!searchApiService) {
-            console.error("❌ Widget: Could not get SearchApiService");
-            searchPromises.push($.Deferred().resolve({
-                success: false,
-                results: [],
-                totalResults: 0,
-                error: "SearchApiService not available - services may not be loaded yet"
-            }).promise());
-        } else {
-            // Determine entity types for the shared service
-            var entityTypes = self.options.entityTypes || ["person", "organisation"];
-            
-            console.log("🚀 Widget calling shared SearchApiService.searchOds()");
-            console.log("   Query:", query);
-            console.log("   Entity types:", entityTypes);
-            console.log("   Page size:", self.options.maxQuickResults || 10);
-            
-            // Use the SAME shared service as the Blade
-            var odsPromise = searchApiService.searchOds(
-                query, 
-                entityTypes, 
-                self.options.maxQuickResults || 10, 
-                0  // Widget always uses page 0 for inline search
-            );
-            
-            searchPromises.push(odsPromise);
-            console.log("✅ Widget ODS search initiated via shared service");
-        }
+    // Use UnifiedSearchService (same as blade) - single source of truth  
+    console.log("🔍 Widget using UnifiedSearchService for search");
+    
+    // Get UnifiedSearchService instance
+    var unifiedSearchService = null;
+    if (Alt.UnifiedDataSearch && Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.unifiedSearchService) {
+        unifiedSearchService = Alt.UnifiedDataSearch.Services.unifiedSearchService;
     }
     
-    // Search PMS if enabled (EXACTLY like blade - always use mock)
-    if (self.options.searchMode === "unified" || self.options.searchMode === "pmsOnly") {
-        console.log("Making PMS search with query:", query);
-        
-        // PMS integration not available
-        
-        var entityTypes = self.options.entityTypes || ["person", "organisation"];
-        
-        // For "all" or multiple types, we need to search both types and merge (EXACTLY like blade)
-        if (entityTypes.length > 1 || (entityTypes.indexOf("person") > -1 && entityTypes.indexOf("organisation") > -1)) {
-            // Search both persons and organisations
-            var personsPromise = self.searchPmsType("persons", query, 0);
-            var orgsPromise = self.searchPmsType("organisations", query, 0);
-            
-            // Merge results from both searches (EXACTLY like blade)
-            var combinedPromise = $.when(personsPromise, orgsPromise).then(function(personsResult, orgsResult) {
-                var combinedResults = {
-                    success: true,
-                    results: [],
-                    totalResults: 0,
-                    page: 0,
-                    hasMore: false
-                };
-                
-                // Add persons results
-                if (personsResult && personsResult.results) {
-                    combinedResults.results = combinedResults.results.concat(personsResult.results);
-                    combinedResults.totalResults += personsResult.totalResults || personsResult.results.length;
-                }
-                
-                // Add organisations results
-                if (orgsResult && orgsResult.results) {
-                    combinedResults.results = combinedResults.results.concat(orgsResult.results);
-                    combinedResults.totalResults += orgsResult.totalResults || orgsResult.results.length;
-                }
-                
-                combinedResults.hasMore = (personsResult && personsResult.hasMore) || (orgsResult && orgsResult.hasMore);
-                
-                return combinedResults;
-            });
-            
-            searchPromises.push(combinedPromise);
-        } else if (entityTypes[0] === "person") {
-            // Search only persons
-            searchPromises.push(self.searchPmsType("persons", query, 0));
-        } else if (entityTypes[0] === "organisation") {
-            // Search only organisations
-            searchPromises.push(self.searchPmsType("organisations", query, 0));
-        }
-        
-        console.log("PMS search initiated");
+    if (!unifiedSearchService) {
+        console.error("❌ Widget: Could not get UnifiedSearchService");
+        self.isPerformingQuickSearch(false);
+        self.quickSearchResults([]);
+        self.inlineSearchResults([]);
+        self.searchError("UnifiedSearchService not available");
+        return;
     }
+    
+    // Determine entity types
+    var entityTypes = self.options.entityTypes || ["person", "organisation"];
+    var entityType = entityTypes.length === 1 ? entityTypes[0] : "all";
+    
+    console.log("🚀 Widget calling UnifiedSearchService.search()");
+    console.log("   Query:", query);
+    console.log("   Entity type:", entityType);
+    console.log("   Page size:", self.options.maxQuickResults || 10);
+    
+    // Use same API as blade for consistency
+    var searchPromise = unifiedSearchService.search({
+        query: query,
+        entityType: entityType,
+        entityTypes: entityTypes,
+        pageSize: self.options.maxQuickResults || 10,
+        page: 0,
+        timeout: 5000,
+        onOdsComplete: function(odsResults) {
+            console.log("🎯 Widget: ODS search completed:", odsResults);
+        },
+        onPmsComplete: function(externalResults) {
+            console.log("🎯 Widget: External search completed:", externalResults);
+        },
+        onOdsError: function(error) {
+            console.error("❌ Widget: ODS search failed:", error);
+        },
+        onPmsError: function(error) {
+            console.error("❌ Widget: External search failed:", error);
+        }
+    });
+    
+    searchPromises.push(searchPromise);
+    console.log("✅ Widget search initiated via UnifiedSearchService");
     
     console.log("Total search promises created:", searchPromises.length);
     
@@ -883,88 +836,19 @@ Alt.UnifiedDataSearch.Widgets.UnifiedOdsEntityPicker.prototype.executeInlineSear
         return;
     }
     
-    // Wait for all searches to complete
+    // Wait for unified search to complete
     $.when.apply($, searchPromises).done(function() {
-        console.log("=== WIDGET SEARCH COMPLETE ===");
-        console.log("Search promises count:", searchPromises.length);
+        console.log("=== WIDGET UNIFIED SEARCH COMPLETE ===");
         console.log("Arguments received:", arguments);
         
-        // Separate ODS and PMS results for merging (like blade does)
-        var odsResults = null;
-        var pmsResults = null;
+        // UnifiedSearchService returns merged results directly
+        var unifiedResults = arguments[0] || { results: [], totalCount: 0 };
+        console.log("Unified results:", unifiedResults);
+        console.log("Total count:", unifiedResults.totalCount);
+        console.log("Results count:", unifiedResults.results ? unifiedResults.results.length : 0);
         
-        // Process based on search mode and number of promises
-        if (self.options.searchMode === "unified") {
-            console.log("Unified search mode - expecting both ODS and PMS results");
-            
-            if (searchPromises.length === 2) {
-                // We have both ODS and PMS promises
-                // ODS promise was added first, then PMS
-                console.log("Two promises detected - ODS and PMS");
-                odsResults = arguments[0];
-                pmsResults = arguments[1];
-            } else if (searchPromises.length === 1) {
-                // Only one promise - need to determine type
-                console.log("Single promise detected - determining type");
-                var result = arguments[0];
-                
-                // Check if this looks like mock PMS data
-                if (result && result.success !== undefined && result.results) {
-                    // Mock PMS service returns {success: true, results: [...]}
-                    console.log("Detected mock PMS format");
-                    pmsResults = result;
-                } else if (result && result.results) {
-                    // ODS returns {results: [...], totalResults: n}
-                    console.log("Detected ODS format");
-                    odsResults = result;
-                }
-            }
-        } else if (self.options.searchMode === "odsOnly") {
-            console.log("ODS only mode");
-            odsResults = arguments[0];
-        } else if (self.options.searchMode === "pmsOnly") {
-            console.log("PMS only mode");
-            pmsResults = arguments[0];
-        }
-        
-        // Ensure we have valid result structures
-        odsResults = odsResults || { results: [] };
-        pmsResults = pmsResults || { results: [] };
-        
-        console.log("=== PRE-MERGE DATA ===");
-        console.log("ODS Results to merge:", odsResults);
-        console.log("  - Count:", odsResults.results ? odsResults.results.length : 0);
-        console.log("PMS Results to merge:", pmsResults);
-        console.log("  - Count:", pmsResults.results ? pmsResults.results.length : 0);
-        
-        // Use ResultMergerService to merge results (EXACTLY like blade)
-        var mergedResults = [];
-        if (Alt.UnifiedDataSearch.Services && Alt.UnifiedDataSearch.Services.resultMergerService) {
-            console.log("Using ResultMergerService for merging");
-            mergedResults = Alt.UnifiedDataSearch.Services.resultMergerService.mergeResults(odsResults, pmsResults);
-            console.log("=== POST-MERGE DATA ===");
-            console.log("Merged results count:", mergedResults.length);
-            console.log("Merged results:", mergedResults);
-            
-            // Log source distribution
-            var sourceCounts = {
-                sharedo: 0,
-                pms: 0,
-                matched: 0
-            };
-            mergedResults.forEach(function(r) {
-                sourceCounts[r.source] = (sourceCounts[r.source] || 0) + 1;
-            });
-            console.log("Source distribution:", sourceCounts);
-        } else {
-            // Fallback to simple concatenation if service not available
-            console.error("!!! ResultMergerService NOT AVAILABLE !!!");
-            console.log("Alt.UnifiedDataSearch.Services:", Alt.UnifiedDataSearch.Services);
-            var allResults = [];
-            if (odsResults.results) allResults = allResults.concat(odsResults.results);
-            if (pmsResults.results) allResults = allResults.concat(pmsResults.results);
-            mergedResults = allResults;
-        }
+        var mergedResults = unifiedResults.results || [];
+        console.log("Merged results (from UnifiedSearchService):", mergedResults.length)
         
         // Process results to add proper display information
         if (mergedResults && mergedResults.length > 0) {
